@@ -1,0 +1,10 @@
+group: g7
+description: AE latent bottleneck features + XGBoost, no resampling
+features: latent
+imbalance: none
+dedup: true
+seed: 42
+xgb_params: {}
+ae_params:
+  build: {hidden: [20], bottleneck: 10, lr: 0.001}
+  fit: {epochs: 50, batch_size: 256, patience: 5}

@@ -1,0 +1,10 @@
+group: g3
+description: Hybrid AE reconstruction error + XGBoost + SMOTE (training only)
+features: recon_error
+imbalance: smote
+dedup: true
+seed: 42
+xgb_params: {}
+ae_params:
+  build: {hidden: [20], bottleneck: 10, lr: 0.001}
+  fit: {epochs: 50, batch_size: 256, patience: 5}

@@ -124,3 +124,32 @@ def test_clean_run_requirement_is_independent_of_data_validation(
             validate_data=False,
             require_clean=True,
         )
+
+
+def test_runner_hybrid_reconstruction_error(tmp_path):
+    config = {
+        "group": "g2",
+        "features": "recon_error",
+        "imbalance": "none",
+        "dedup": True,
+        "seed": 42,
+        "xgb_params": {"n_estimators": 20},
+        "ae_params": {
+            "build": {"hidden": [8], "bottleneck": 3},
+            "fit": {"epochs": 3, "batch_size": 64},
+        },
+    }
+
+    run_dir = run(
+        config,
+        data_path=make_synthetic_csv(tmp_path),
+        out_root=tmp_path / "runs",
+        validate_data=False,
+        require_clean=False,
+    )
+
+    metrics = json.loads((run_dir / "metrics.json").read_text())
+    manifest = validate_run_manifest(run_dir, expected_group="g2")
+    assert metrics["feature_names"][-1] == "recon_error"
+    assert manifest["feature_names"] == metrics["feature_names"]
+    assert (run_dir / "model" / "ae.keras").exists()
