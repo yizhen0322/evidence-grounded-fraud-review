@@ -3,157 +3,270 @@
     "attack/ambiguous_direction": {
       "interception_rate": {
         "ci95": [
-          0.8454,
+          0.8513,
           1.0
         ],
-        "n": 21,
+        "n": 22,
         "rate": 1.0
       }
     },
     "attack/direction_flip": {
       "interception_rate": {
         "ci95": [
-          0.8454,
+          0.8513,
           1.0
         ],
-        "n": 21,
+        "n": 22,
+        "rate": 1.0
+      }
+    },
+    "attack/duplicate_bullet": {
+      "interception_rate": {
+        "ci95": [
+          0.8513,
+          1.0
+        ],
+        "n": 22,
+        "rate": 1.0
+      }
+    },
+    "attack/fabricated_natural_language_reason": {
+      "interception_rate": {
+        "ci95": [
+          0.8513,
+          1.0
+        ],
+        "n": 22,
+        "rate": 1.0
+      }
+    },
+    "attack/fails_to_direction": {
+      "interception_rate": {
+        "ci95": [
+          0.8513,
+          1.0
+        ],
+        "n": 22,
+        "rate": 1.0
+      }
+    },
+    "attack/hedged_direction": {
+      "interception_rate": {
+        "ci95": [
+          0.8513,
+          1.0
+        ],
+        "n": 22,
         "rate": 1.0
       }
     },
     "attack/invented_feature": {
       "interception_rate": {
         "ci95": [
-          0.8454,
+          0.8513,
           1.0
         ],
-        "n": 21,
+        "n": 22,
         "rate": 1.0
       }
     },
     "attack/negated_direction": {
       "interception_rate": {
         "ci95": [
-          0.8454,
+          0.8513,
           1.0
         ],
-        "n": 21,
+        "n": 22,
         "rate": 1.0
       }
     },
     "attack/omitted_evidence_bullet": {
       "interception_rate": {
         "ci95": [
-          0.8454,
+          0.8513,
           1.0
         ],
-        "n": 21,
+        "n": 22,
         "rate": 1.0
       }
     },
     "attack/omitted_evidence_narrative": {
       "interception_rate": {
         "ci95": [
-          0.8454,
+          0.8513,
           1.0
         ],
-        "n": 21,
+        "n": 22,
+        "rate": 1.0
+      }
+    },
+    "attack/reordered_bullets": {
+      "interception_rate": {
+        "ci95": [
+          0.8513,
+          1.0
+        ],
+        "n": 22,
         "rate": 1.0
       }
     },
     "attack/risk_bucket_flip": {
       "interception_rate": {
         "ci95": [
-          0.8454,
+          0.8513,
           1.0
         ],
-        "n": 21,
+        "n": 22,
         "rate": 1.0
       }
     },
     "attack/template_corruption": {
       "interception_rate": {
         "ci95": [
-          0.8454,
+          0.8513,
           1.0
         ],
-        "n": 21,
+        "n": 22,
         "rate": 1.0
       }
     },
     "attack/unauthorized_number": {
       "interception_rate": {
         "ci95": [
-          0.8454,
+          0.8513,
           1.0
         ],
-        "n": 21,
+        "n": 22,
         "rate": 1.0
       }
     },
     "attack/unsupported_known_feature": {
       "interception_rate": {
         "ci95": [
-          0.8454,
+          0.8513,
           1.0
         ],
-        "n": 21,
+        "n": 22,
         "rate": 1.0
       }
     },
     "faithful/canonical_while": {
       "acceptance_rate": {
         "ci95": [
-          0.8454,
+          0.8513,
           1.0
         ],
-        "n": 21,
+        "n": 22,
+        "rate": 1.0
+      }
+    },
+    "faithful/comma_list": {
+      "acceptance_rate": {
+        "ci95": [
+          0.8513,
+          1.0
+        ],
+        "n": 22,
         "rate": 1.0
       }
     },
     "faithful/conjunction_and": {
       "acceptance_rate": {
         "ci95": [
-          0.8454,
+          0.8513,
           1.0
         ],
-        "n": 21,
+        "n": 22,
+        "rate": 1.0
+      }
+    },
+    "faithful/direction_articles": {
+      "acceptance_rate": {
+        "ci95": [
+          0.8513,
+          1.0
+        ],
+        "n": 22,
         "rate": 1.0
       }
     },
     "faithful/narrative_reorder": {
       "acceptance_rate": {
         "ci95": [
-          0.8454,
+          0.8513,
           1.0
         ],
-        "n": 21,
+        "n": 22,
+        "rate": 1.0
+      }
+    },
+    "faithful/raises_lowers": {
+      "acceptance_rate": {
+        "ci95": [
+          0.8513,
+          1.0
+        ],
+        "n": 22,
         "rate": 1.0
       }
     }
   },
   "corpus": "corpus/guardrail_corpus_v1.jsonl",
-  "corpus_sha256": "3634dc48506051720db556a7ec1c5070a53ff0cf78c5604efaee821aeab0844c",
+  "corpus_sha256": "96a0a15d78daf0785bf67275344958b516b0d584d9be560f971d764e8f86f671",
   "instrument": "src/narratives/guardrails.py",
-  "instrument_sha256": "c0041ad8c324380c3343dd908499377f0774cd940a2047da7083128b9cd2ee74",
-  "n_items": 273,
+  "instrument_sha256": "419da88fbf8041f6d30f01af430481616bf31398dfd83c7201967c3664f04721",
+  "known_features": [
+    "Time",
+    "V1",
+    "V2",
+    "V3",
+    "V4",
+    "V5",
+    "V6",
+    "V7",
+    "V8",
+    "V9",
+    "V10",
+    "V11",
+    "V12",
+    "V13",
+    "V14",
+    "V15",
+    "V16",
+    "V17",
+    "V18",
+    "V19",
+    "V20",
+    "V21",
+    "V22",
+    "V23",
+    "V24",
+    "V25",
+    "V26",
+    "V27",
+    "V28",
+    "Amount"
+  ],
+  "n_items": 462,
   "overall": {
     "attack_interception": {
       "ci95": [
-        0.982,
+        0.9885,
         1.0
       ],
-      "n": 210,
+      "n": 330,
       "rate": 1.0
     },
     "failed_corpus_ids": [],
     "false_rejection": {
       "ci95": [
         0.0,
-        0.0575
+        0.0283
       ],
-      "n": 63,
+      "n": 132,
       "rate": 0.0
     },
     "gate_passed": true
-  }
+  },
+  "scope": "Synthetic, template-constrained adversarial calibration. Rates describe this versioned corpus only; they do not estimate real LLM prevalence."
 }

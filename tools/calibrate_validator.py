@@ -11,10 +11,10 @@ if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from src.evaluation.stats import wilson_ci
-from src.narratives.guardrails import validate_narrative
+from src.narratives.guardrails import CALIBRATED_KNOWN_FEATURES, validate_narrative
 from src.provenance import sha256_file
 
-KNOWN = ["Time", *[f"V{i}" for i in range(1, 29)], "Amount", "recon_error"]
+KNOWN = CALIBRATED_KNOWN_FEATURES
 
 
 def _rate(successes: int, n: int) -> dict:
@@ -49,6 +49,11 @@ def calibrate(path: str | Path) -> tuple[dict, list[int]]:
         "n_items": len(items),
         "instrument": "src/narratives/guardrails.py",
         "instrument_sha256": sha256_file("src/narratives/guardrails.py"),
+        "known_features": KNOWN,
+        "scope": (
+            "Synthetic, template-constrained adversarial calibration. Rates describe "
+            "this versioned corpus only; they do not estimate real LLM prevalence."
+        ),
         "categories": {},
     }
     for (kind, category), (correct, n) in sorted(by_category.items()):

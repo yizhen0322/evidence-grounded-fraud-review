@@ -17,13 +17,27 @@ BULLET_RE = re.compile(
     re.I,
 )
 NUMBER_RE = re.compile(r"(?<![A-Za-z_])[-+]?\d+(?:\.\d+)?%?")
-NEGATED_DIRECTION_RE = re.compile(
-    r"\b(?:not|never|no|doesn't|does not|isn't|is not)\b"
-    r".{0,30}\b(?:increase|increases|increasing|decrease|decreases|decreasing)\s+risk\b",
-    re.I,
-)
 UNKNOWN_FEATURE_TOKEN_RE = re.compile(r"\b(?:V\d+|[A-Za-z]+_[A-Za-z0-9_]+)\b", re.I)
 RISK_LEVEL_RE = re.compile(r"\b(?P<level>High|Medium|Low)\s+risk\b", re.I)
+CALIBRATED_KNOWN_FEATURES = [
+    "Time",
+    *[f"V{index}" for index in range(1, 29)],
+    "Amount",
+]
+DIRECTION_PHRASES = {
+    "increases_risk": (
+        "increases risk",
+        "increases the risk",
+        "raises risk",
+        "raises the risk",
+    ),
+    "decreases_risk": (
+        "decreases risk",
+        "decreases the risk",
+        "lowers risk",
+        "lowers the risk",
+    ),
+}
 
 
 @dataclass(frozen=True)
@@ -97,10 +111,71 @@ def _format_ok(text: str, known_features: list[str]) -> bool:
         if sentence.strip()
     ]
     return (
-        2 <= len(sentences) <= 3
+        len(sentences) == 2
         and all(sentence[-1] in ".!?" for sentence in sentences)
         and not _has_unauthorized_number(text, known_features)
     )
+
+
+def _parse_narrative_clauses(
+    narrative: str,
+    known_features: list[str],
+) -> list[tuple[str, str]] | None:
+    """Parse a closed grammar so free-text reasons cannot accompany evidence."""
+    sentences = [
+        sentence.strip()
+        for sentence in re.split(r"(?<=[.!?])\s+", narrative.strip())
+        if sentence.strip()
+    ]
+    if len(sentences) != 2:
+        return None
+    body = sentences[1][:-1].strip()
+    feature_alt = "|".join(
+        re.escape(feature) for feature in sorted(known_features, key=len, reverse=True)
+    )
+    phrase_to_direction = {
+        phrase: direction
+        for direction, phrases in DIRECTION_PHRASES.items()
+        for phrase in phrases
+    }
+    direction_alt = "|".join(
+        re.escape(phrase)
+        for phrase in sorted(phrase_to_direction, key=len, reverse=True)
+    )
+    clause_re = re.compile(
+        rf"\b(?P<feature>{feature_alt})\b\s+"
+        rf"(?P<direction>{direction_alt})"
+        rf"(?:\s+for this transaction)?",
+        re.I,
+    )
+    matches = list(clause_re.finditer(body))
+    if not matches:
+        return None
+    rows: list[tuple[str, str]] = []
+    cursor = 0
+    canonical_features = {feature.lower(): feature for feature in known_features}
+    for index, match in enumerate(matches):
+        separator = body[cursor : match.start()]
+        if index == 0:
+            if separator.strip().lower() not in {"", "both"}:
+                return None
+        elif re.fullmatch(
+            r"\s*(?:,\s*(?:(?:and|while)\s+)?|(?:and|while)\s+)",
+            separator,
+            re.I,
+        ) is None:
+            return None
+        phrase = re.sub(r"\s+", " ", match.group("direction").lower())
+        rows.append(
+            (
+                canonical_features[match.group("feature").lower()],
+                phrase_to_direction[phrase],
+            )
+        )
+        cursor = match.end()
+    if body[cursor:].strip():
+        return None
+    return rows
 
 
 def _completeness_ok(text: str, record: dict) -> bool:
@@ -127,7 +202,13 @@ def _grounding_ok(text: str, record: dict, known_features: list[str]) -> bool:
         return False
     allowed = {code["feature"] for code in record["codes"]}
     allowed_lower = {feature.lower() for feature in allowed}
-    if _mentioned_features(text, known_features) - allowed:
+    narrative_rows = _parse_narrative_clauses(
+        match.group("narrative"),
+        known_features,
+    )
+    if narrative_rows is None:
+        return False
+    if {feature for feature, _ in narrative_rows} - allowed:
         return False
     unknown = {
         token
@@ -136,7 +217,21 @@ def _grounding_ok(text: str, record: dict, known_features: list[str]) -> bool:
     }
     if unknown:
         return False
-    stated_levels = {match.group("level").lower() for match in RISK_LEVEL_RE.finditer(match.group("narrative"))}
+    first_sentence = re.split(
+        r"(?<=[.!?])\s+",
+        match.group("narrative").strip(),
+        maxsplit=1,
+    )[0]
+    if re.fullmatch(
+        r"This case is rated (High|Medium|Low) risk\.",
+        first_sentence,
+        re.I,
+    ) is None:
+        return False
+    stated_levels = {
+        found.group("level").lower()
+        for found in RISK_LEVEL_RE.finditer(first_sentence)
+    }
     return stated_levels == {str(record["risk_bucket"]).lower()}
 
 
@@ -152,31 +247,17 @@ def _direction_ok(text: str, record: dict, known_features: list[str]) -> bool:
     if bullets != expected_rows:
         return False
 
-    narrative = match.group("narrative")
-    feature_alt = "|".join(
-        re.escape(feature) for feature in sorted(known_features, key=len, reverse=True)
-    )
     expected = dict(expected_rows)
-    for feature, expected_direction in expected.items():
-        pattern = re.compile(
-            rf"\b{re.escape(feature)}\b(?P<span>.{{0,120}}?)"
-            rf"(?=\b(?:{feature_alt})\b|[.!?;\n]|$)",
-            re.I,
-        )
-        spans = [found.group("span") for found in pattern.finditer(narrative)]
-        if not spans:
-            return False
-        for span in spans:
-            if NEGATED_DIRECTION_RE.search(span):
-                return False
-            stated: set[str] = set()
-            if re.search(r"\bincreases\s+risk\b", span, re.I):
-                stated.add("increases_risk")
-            if re.search(r"\bdecreases\s+risk\b", span, re.I):
-                stated.add("decreases_risk")
-            if stated != {expected_direction}:
-                return False
-    return True
+    narrative_rows = _parse_narrative_clauses(
+        match.group("narrative"),
+        known_features,
+    )
+    if narrative_rows is None:
+        return False
+    return (
+        len(narrative_rows) == len(expected)
+        and all(expected.get(feature) == direction for feature, direction in narrative_rows)
+    )
 
 
 def validate_narrative(

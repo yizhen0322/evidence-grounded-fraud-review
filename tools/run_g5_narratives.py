@@ -76,9 +76,10 @@ def g5_output_dir(
 def _rate_block(successes: int, n: int) -> dict:
     lower, upper = wilson_ci(successes, n)
     return {
-        "rate": successes / n if n else 0.0,
+        "rate": successes / n if n else None,
         "n": n,
         "ci95": [round(lower, 4), round(upper, 4)],
+        "estimable": n > 0,
     }
 
 
@@ -103,6 +104,10 @@ def summarize_arm(rows: list[dict]) -> dict:
         "n_cases": total_n,
         "n_guardrail_judged": judged_n,
         "llm_unavailable": _rate_block(total_n - judged_n, total_n),
+        "denominators": {
+            "off_policy": "LLM-generated outputs judged by the validator",
+            "on_policy": "all requested cases, including LLM-unavailable fallbacks",
+        },
         "off_policy_prevalence": prevalence,
         "on_policy_delivery": {
             "fallback": _rate_block(sum(row["fallback"] for row in rows), total_n),
@@ -126,6 +131,7 @@ def summarize_arm(rows: list[dict]) -> dict:
 def assert_calibration_gate(
     calibration_path: Path = DEFAULT_CALIBRATION,
     corpus_path: Path = DEFAULT_CORPUS,
+    known_features: list[str] | None = None,
 ) -> dict:
     """Reject stale or failed calibration before a reported G5 run."""
     report = json.loads(calibration_path.read_text())
@@ -139,6 +145,23 @@ def assert_calibration_gate(
         raise ValueError("validator changed after calibration")
     if report.get("corpus_sha256") != sha256_file(corpus_path):
         raise ValueError("guardrail corpus changed after calibration")
+    runtime_features = known_features or report.get("known_features")
+    if report.get("known_features") != runtime_features:
+        raise ValueError("runtime feature vocabulary differs from calibration")
+    items = [
+        json.loads(line)
+        for line in corpus_path.read_text().splitlines()
+        if line.strip()
+    ]
+    if len(items) != report.get("n_items"):
+        raise ValueError("calibration item count differs from corpus")
+    failures = []
+    for item in items:
+        rejected = validate_narrative(item["text"], item["record"], runtime_features).fallback
+        if rejected != (item["expected"] == "reject"):
+            failures.append(item["corpus_id"])
+    if failures:
+        raise ValueError(f"live calibration recomputation failed: {failures[:10]}")
     return report
 
 
@@ -176,11 +199,12 @@ def run_g5(
         records = records[:limit]
     final_run = limit is None
     clean_required = final_run if require_clean is None else require_clean
-    calibration = assert_calibration_gate()
+    calibration = assert_calibration_gate(known_features=known_features)
     if clean_required:
         assert_clean_repository()
     destination = Path(output) if output is not None else g5_output_dir(seed, limit)
-    destination.mkdir(parents=True, exist_ok=False)
+    if destination.exists():
+        raise FileExistsError(destination)
 
     rows: list[dict] = []
     unavailable = 0
@@ -230,6 +254,11 @@ def run_g5(
             print(f"case {record['case_id']} [{arm}]: {status} ({latency:.2f}s)")
 
     validate_g5_rows(rows, records, selected_arms)
+    if final_run and unavailable:
+        raise RuntimeError(
+            "reported G5 requires every requested LLM generation to be available; "
+            f"unavailable={unavailable}/{len(rows)}"
+        )
     faithfulness = {
         "model": model,
         "llm_unavailable_count": unavailable,
@@ -247,6 +276,7 @@ def run_g5(
             for arm in selected_arms
         },
     }
+    destination.mkdir(parents=True, exist_ok=False)
     with (destination / "narratives.jsonl").open("w") as handle:
         for row in rows:
             handle.write(json.dumps(row) + "\n")
@@ -268,6 +298,8 @@ def run_g5(
             "src/narratives/llm_client.py",
             "src/provenance.py",
             "tools/run_g5_narratives.py",
+            "tools/build_guardrail_corpus.py",
+            "tools/calibrate_validator.py",
         ],
         extra={
             "model": model,

@@ -17,9 +17,10 @@ STRICT RULES:
 - Keep each feature's direction exactly as stated (increases risk / decreases risk).
 - Keep the stated overall risk level unchanged.
 - Do not state exact numbers, probabilities, or feature values.
-- Output exactly this template, nothing else:
+- Output exactly this template, nothing else. The NARRATIVE has exactly two sentences.
+- In the second sentence, use only listed feature-direction clauses joined by commas, "and", or "while". Do not add explanations.
 
-NARRATIVE: <2-3 sentences: first sentence states the overall risk level; the rest summarize every listed feature and its direction>
+NARRATIVE: This case is rated <risk level> risk. <feature> <increases risk/decreases risk>, while <feature> <increases risk/decreases risk>.
 EVIDENCE:
 - <one bullet per listed feature, in rank order, restating feature and direction>
 ACTION: Recommended for manual review.
@@ -32,7 +33,7 @@ SIMPLE_PROMPT_TEMPLATE = """You are a fraud-analyst assistant. Explain why this 
 
 Use this template:
 
-NARRATIVE: <2-3 sentences>
+NARRATIVE: This case is rated <risk level> risk. <feature-direction clauses>
 EVIDENCE:
 - <one bullet per feature>
 ACTION: Recommended for manual review.

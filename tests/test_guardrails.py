@@ -63,6 +63,13 @@ def test_good_narrative_passes_all_checks():
             ),
             "grounding",
         ),
+        (
+            GOOD.replace(
+                "V10 increases risk for this transaction, while V14 decreases risk",
+                "V10 increases risk, while V14 decreases risk, because cardholder behavior is suspicious",
+            ),
+            "grounding",
+        ),
         (GOOD.replace("High risk", "Low risk", 1), "grounding"),
     ],
 )
@@ -86,6 +93,12 @@ def test_fallback_text_lists_codes_in_rank_order():
             "V10 increases risk for this transaction, while V14 decreases risk",
             "Both V14 decreases risk and V10 increases risk for this transaction",
         ),
+        GOOD.replace("V10 increases risk", "V10 increases the risk"),
+        GOOD.replace("V10 increases risk", "V10 raises risk").replace(
+            "V14 decreases risk",
+            "V14 lowers risk",
+            1,
+        ),
     ],
 )
 def test_faithful_conjunctions_are_not_false_rejected(text):
@@ -99,6 +112,8 @@ def test_faithful_conjunctions_are_not_false_rejected(text):
         GOOD.replace("V14 decreases risk", "V14 decreases risk and increases risk"),
         GOOD.replace("- V10 - increases risk", "- V10 - related to risk"),
         GOOD.replace("V10 increases risk", "V10 never increases risk"),
+        GOOD.replace("V10 increases risk", "V10 hardly increases risk"),
+        GOOD.replace("V10 increases risk", "V10 fails to increase risk"),
     ],
 )
 def test_adversarial_pass_seeking_narratives_are_rejected(bad):

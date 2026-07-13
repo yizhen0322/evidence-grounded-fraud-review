@@ -3,11 +3,13 @@ import json
 
 import pytest
 
+from src.narratives.llm_client import LLMUnavailable
 from tools.run_g5_narratives import (
     assert_calibration_gate,
     g5_output_dir,
     load_g4_context,
     parse_arms,
+    run_g5,
     summarize_arm,
     validate_g5_rows,
 )
@@ -90,6 +92,7 @@ def test_arm_summary_has_detected_rates_denominators_ci_and_policy_label():
         "residual_detected_violation_on_delivered"
     ]
     assert residual["by_construction"] is True and residual["n"] == 0
+    assert residual["rate"] is None and residual["estimable"] is False
 
 
 def test_rows_must_cover_each_case_once_per_arm():
@@ -127,3 +130,37 @@ def test_calibration_gate_rejects_stale_validator(tmp_path):
     )
     with pytest.raises(ValueError, match="validator changed"):
         assert_calibration_gate(calibration, corpus)
+
+
+def test_reported_run_aborts_without_writing_when_any_llm_call_is_unavailable(
+    tmp_path,
+    monkeypatch,
+):
+    record = {
+        "case_id": 1,
+        "risk_bucket": "High",
+        "codes": [
+            {"feature": "V1", "direction": "increases_risk", "rank": 1}
+        ],
+    }
+    monkeypatch.setattr(
+        "tools.run_g5_narratives.load_g4_context",
+        lambda _path: ({}, [record], 42, ["V1"]),
+    )
+    monkeypatch.setattr(
+        "tools.run_g5_narratives.assert_calibration_gate",
+        lambda **_kwargs: {"overall": {"gate_passed": True}, "n_items": 1},
+    )
+    monkeypatch.setattr(
+        "tools.run_g5_narratives.generate_narrative",
+        lambda *args, **kwargs: (_ for _ in ()).throw(LLMUnavailable("offline")),
+    )
+    output = tmp_path / "reported-g5"
+    with pytest.raises(RuntimeError, match="requires every requested LLM"):
+        run_g5(
+            tmp_path / "g4",
+            arms=["strict", "simple"],
+            output=output,
+            require_clean=False,
+        )
+    assert not output.exists()

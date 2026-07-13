@@ -10,7 +10,9 @@ from pathlib import Path
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-KNOWN = ["Time", *[f"V{i}" for i in range(1, 29)], "Amount", "recon_error"]
+from src.narratives.guardrails import CALIBRATED_KNOWN_FEATURES
+
+KNOWN = CALIBRATED_KNOWN_FEATURES
 DIRWORD = {
     "increases_risk": "increases risk",
     "decreases_risk": "decreases risk",
@@ -83,6 +85,8 @@ def attacks_for(record: dict) -> list[tuple[str, str]]:
         record,
         remaining or ["the transaction profile is unusual"],
     )
+    narrative, evidence = good.split("\nEVIDENCE:\n", 1)
+    fabricated_reason = narrative[:-1] + ", because cardholder behavior is suspicious."
     return [
         (
             "direction_flip",
@@ -96,6 +100,19 @@ def attacks_for(record: dict) -> list[tuple[str, str]]:
                 + DIRWORD[first["direction"]].replace("s risk", " risk"),
                 1,
             ),
+        ),
+        (
+            "fails_to_direction",
+            good.replace(
+                first_phrase,
+                f"{first['feature']} fails to "
+                + DIRWORD[first["direction"]].replace("s risk", " risk"),
+                1,
+            ),
+        ),
+        (
+            "hedged_direction",
+            good.replace(first_phrase, f"{first['feature']} hardly {DIRWORD[first['direction']]}", 1),
         ),
         (
             "ambiguous_direction",
@@ -117,6 +134,7 @@ def attacks_for(record: dict) -> list[tuple[str, str]]:
                 1,
             ),
         ),
+        ("fabricated_natural_language_reason", f"{fabricated_reason}\nEVIDENCE:\n{evidence}"),
         ("omitted_evidence_narrative", omitted),
         (
             "omitted_evidence_bullet",
@@ -139,6 +157,28 @@ def attacks_for(record: dict) -> list[tuple[str, str]]:
             good.replace("ACTION: Recommended for manual review.", "", 1),
         ),
         (
+            "duplicate_bullet",
+            good.replace(
+                "\nACTION:",
+                f"\n- {first['feature']} - {DIRWORD[first['direction']]}\nACTION:",
+                1,
+            ),
+        ),
+        (
+            "reordered_bullets",
+            good.replace(
+                "\n".join(
+                    f"- {code['feature']} - {DIRWORD[code['direction']]}"
+                    for code in codes
+                ),
+                "\n".join(
+                    f"- {code['feature']} - {DIRWORD[code['direction']]}"
+                    for code in reversed(codes)
+                ),
+                1,
+            ),
+        ),
+        (
             "risk_bucket_flip",
             good.replace("rated High risk", "rated Low risk", 1),
         ),
@@ -150,7 +190,22 @@ def faithful_for(record: dict) -> list[tuple[str, str]]:
     items = [
         ("canonical_while", canonical_text(record)),
         ("conjunction_and", canonical_text(record, joiner=", and ")),
+        ("comma_list", canonical_text(record, joiner=", ")),
     ]
+    canonical = canonical_text(record)
+    narrative, evidence = canonical.split("\nEVIDENCE:\n", 1)
+    article_narrative = narrative.replace("increases risk", "increases the risk").replace(
+        "decreases risk", "decreases the risk"
+    )
+    synonym_narrative = narrative.replace("increases risk", "raises risk").replace(
+        "decreases risk", "lowers risk"
+    )
+    items.extend(
+        [
+            ("direction_articles", f"{article_narrative}\nEVIDENCE:\n{evidence}"),
+            ("raises_lowers", f"{synonym_narrative}\nEVIDENCE:\n{evidence}"),
+        ]
+    )
     if len(codes) > 1:
         clauses = [
             f"{code['feature']} {DIRWORD[code['direction']]}"
@@ -178,6 +233,12 @@ def build_items() -> list[dict]:
             [("V1", "increases_risk"), ("V14", "decreases_risk")],
         )
     )
+    records.append(
+        make_record(
+            2001,
+            [("Time", "decreases_risk"), ("Amount", "increases_risk")],
+        )
+    )
 
     items: list[dict] = []
     corpus_id = 0
@@ -191,6 +252,7 @@ def build_items() -> list[dict]:
                     "record": record,
                     "text": text,
                     "expected": "reject",
+                    "source": "systematic_adversarial_generation",
                 }
             )
             corpus_id += 1
@@ -203,6 +265,7 @@ def build_items() -> list[dict]:
                     "record": record,
                     "text": text,
                     "expected": "accept",
+                    "source": "diverse_faithful_control",
                 }
             )
             corpus_id += 1
