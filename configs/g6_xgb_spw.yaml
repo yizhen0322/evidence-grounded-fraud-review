@@ -4,4 +4,9 @@ features: original
 imbalance: scale_pos_weight
 dedup: true
 seed: 42
-xgb_params: {}
+xgb_params:
+  max_depth: 6
+  n_estimators: 500
+  learning_rate: 0.2
+  subsample: 1.0
+  colsample_bytree: 0.7

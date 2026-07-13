@@ -1,0 +1,262 @@
+[
+  {
+    "trial": 18,
+    "run_id": "2026-07-14_g2_tune18_seed42",
+    "params": {
+      "max_depth": 4,
+      "n_estimators": 500,
+      "learning_rate": 0.1,
+      "subsample": 0.7,
+      "colsample_bytree": 0.7
+    },
+    "val_auc_pr": 0.8689292213371113,
+    "val_f1": 0.9007633587786259
+  },
+  {
+    "trial": 5,
+    "run_id": "2026-07-14_g2_tune05_seed42",
+    "params": {
+      "max_depth": 8,
+      "n_estimators": 200,
+      "learning_rate": 0.1,
+      "subsample": 1.0,
+      "colsample_bytree": 0.9
+    },
+    "val_auc_pr": 0.8651788506577873,
+    "val_f1": 0.890625
+  },
+  {
+    "trial": 11,
+    "run_id": "2026-07-14_g2_tune11_seed42",
+    "params": {
+      "max_depth": 6,
+      "n_estimators": 500,
+      "learning_rate": 0.03,
+      "subsample": 1.0,
+      "colsample_bytree": 0.7
+    },
+    "val_auc_pr": 0.8647855663908773,
+    "val_f1": 0.9076923076923077
+  },
+  {
+    "trial": 17,
+    "run_id": "2026-07-14_g2_tune17_seed42",
+    "params": {
+      "max_depth": 8,
+      "n_estimators": 300,
+      "learning_rate": 0.1,
+      "subsample": 1.0,
+      "colsample_bytree": 1.0
+    },
+    "val_auc_pr": 0.8618951616487318,
+    "val_f1": 0.890625
+  },
+  {
+    "trial": 7,
+    "run_id": "2026-07-14_g2_tune07_seed42",
+    "params": {
+      "max_depth": 6,
+      "n_estimators": 200,
+      "learning_rate": 0.03,
+      "subsample": 0.9,
+      "colsample_bytree": 0.7
+    },
+    "val_auc_pr": 0.8613011091127749,
+    "val_f1": 0.8939393939393939
+  },
+  {
+    "trial": 19,
+    "run_id": "2026-07-14_g2_tune19_seed42",
+    "params": {
+      "max_depth": 3,
+      "n_estimators": 300,
+      "learning_rate": 0.1,
+      "subsample": 0.9,
+      "colsample_bytree": 0.7
+    },
+    "val_auc_pr": 0.8601463161076217,
+    "val_f1": 0.8805970149253731
+  },
+  {
+    "trial": 8,
+    "run_id": "2026-07-14_g2_tune08_seed42",
+    "params": {
+      "max_depth": 3,
+      "n_estimators": 300,
+      "learning_rate": 0.03,
+      "subsample": 0.9,
+      "colsample_bytree": 0.9
+    },
+    "val_auc_pr": 0.8599018299489587,
+    "val_f1": 0.9007633587786259
+  },
+  {
+    "trial": 2,
+    "run_id": "2026-07-14_g2_tune02_seed42",
+    "params": {
+      "max_depth": 3,
+      "n_estimators": 500,
+      "learning_rate": 0.1,
+      "subsample": 0.7,
+      "colsample_bytree": 0.7
+    },
+    "val_auc_pr": 0.8595170333433341,
+    "val_f1": 0.9007633587786259
+  },
+  {
+    "trial": 14,
+    "run_id": "2026-07-14_g2_tune14_seed42",
+    "params": {
+      "max_depth": 6,
+      "n_estimators": 200,
+      "learning_rate": 0.1,
+      "subsample": 0.9,
+      "colsample_bytree": 0.7
+    },
+    "val_auc_pr": 0.8585998402354942,
+    "val_f1": 0.9007633587786259
+  },
+  {
+    "trial": 12,
+    "run_id": "2026-07-14_g2_tune12_seed42",
+    "params": {
+      "max_depth": 3,
+      "n_estimators": 500,
+      "learning_rate": 0.03,
+      "subsample": 0.9,
+      "colsample_bytree": 0.7
+    },
+    "val_auc_pr": 0.8578314395874428,
+    "val_f1": 0.8939393939393939
+  },
+  {
+    "trial": 13,
+    "run_id": "2026-07-14_g2_tune13_seed42",
+    "params": {
+      "max_depth": 4,
+      "n_estimators": 200,
+      "learning_rate": 0.1,
+      "subsample": 0.9,
+      "colsample_bytree": 0.9
+    },
+    "val_auc_pr": 0.8546869599861144,
+    "val_f1": 0.8923076923076924
+  },
+  {
+    "trial": 3,
+    "run_id": "2026-07-14_g2_tune03_seed42",
+    "params": {
+      "max_depth": 3,
+      "n_estimators": 200,
+      "learning_rate": 0.03,
+      "subsample": 1.0,
+      "colsample_bytree": 1.0
+    },
+    "val_auc_pr": 0.8516150516430866,
+    "val_f1": 0.8854961832061069
+  },
+  {
+    "trial": 4,
+    "run_id": "2026-07-14_g2_tune04_seed42",
+    "params": {
+      "max_depth": 3,
+      "n_estimators": 500,
+      "learning_rate": 0.03,
+      "subsample": 1.0,
+      "colsample_bytree": 1.0
+    },
+    "val_auc_pr": 0.8516150516430866,
+    "val_f1": 0.8854961832061069
+  },
+  {
+    "trial": 10,
+    "run_id": "2026-07-14_g2_tune10_seed42",
+    "params": {
+      "max_depth": 3,
+      "n_estimators": 300,
+      "learning_rate": 0.03,
+      "subsample": 1.0,
+      "colsample_bytree": 0.9
+    },
+    "val_auc_pr": 0.8514720593349058,
+    "val_f1": 0.8837209302325582
+  },
+  {
+    "trial": 15,
+    "run_id": "2026-07-14_g2_tune15_seed42",
+    "params": {
+      "max_depth": 6,
+      "n_estimators": 500,
+      "learning_rate": 0.2,
+      "subsample": 1.0,
+      "colsample_bytree": 0.7
+    },
+    "val_auc_pr": 0.8475851105605465,
+    "val_f1": 0.8872180451127819
+  },
+  {
+    "trial": 9,
+    "run_id": "2026-07-14_g2_tune09_seed42",
+    "params": {
+      "max_depth": 6,
+      "n_estimators": 200,
+      "learning_rate": 0.2,
+      "subsample": 0.9,
+      "colsample_bytree": 1.0
+    },
+    "val_auc_pr": 0.8443527970775174,
+    "val_f1": 0.8682170542635659
+  },
+  {
+    "trial": 16,
+    "run_id": "2026-07-14_g2_tune16_seed42",
+    "params": {
+      "max_depth": 4,
+      "n_estimators": 500,
+      "learning_rate": 0.2,
+      "subsample": 0.7,
+      "colsample_bytree": 0.7
+    },
+    "val_auc_pr": 0.8145815300366511,
+    "val_f1": 0.875
+  },
+  {
+    "trial": 0,
+    "run_id": "2026-07-14_g2_tune00_seed42",
+    "params": {
+      "max_depth": 3,
+      "n_estimators": 200,
+      "learning_rate": 0.2,
+      "subsample": 0.9,
+      "colsample_bytree": 0.7
+    },
+    "val_auc_pr": 0.778342778783474,
+    "val_f1": 0.7878787878787878
+  },
+  {
+    "trial": 6,
+    "run_id": "2026-07-14_g2_tune06_seed42",
+    "params": {
+      "max_depth": 3,
+      "n_estimators": 200,
+      "learning_rate": 0.2,
+      "subsample": 0.9,
+      "colsample_bytree": 0.9
+    },
+    "val_auc_pr": 0.7652037148890176,
+    "val_f1": 0.8805970149253731
+  },
+  {
+    "trial": 1,
+    "run_id": "2026-07-14_g2_tune01_seed42",
+    "params": {
+      "max_depth": 4,
+      "n_estimators": 200,
+      "learning_rate": 0.2,
+      "subsample": 0.7,
+      "colsample_bytree": 1.0
+    },
+    "val_auc_pr": 0.7636371714805382,
+    "val_f1": 0.8405797101449275
+  }
+]

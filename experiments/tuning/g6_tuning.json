@@ -1,0 +1,262 @@
+[
+  {
+    "trial": 15,
+    "run_id": "2026-07-14_g6_tune15_seed42",
+    "params": {
+      "max_depth": 6,
+      "n_estimators": 500,
+      "learning_rate": 0.2,
+      "subsample": 1.0,
+      "colsample_bytree": 0.7
+    },
+    "val_auc_pr": 0.8774468860340953,
+    "val_f1": 0.8992248062015504
+  },
+  {
+    "trial": 16,
+    "run_id": "2026-07-14_g6_tune16_seed42",
+    "params": {
+      "max_depth": 4,
+      "n_estimators": 500,
+      "learning_rate": 0.2,
+      "subsample": 0.7,
+      "colsample_bytree": 0.7
+    },
+    "val_auc_pr": 0.8769153516128686,
+    "val_f1": 0.8923076923076924
+  },
+  {
+    "trial": 9,
+    "run_id": "2026-07-14_g6_tune09_seed42",
+    "params": {
+      "max_depth": 6,
+      "n_estimators": 200,
+      "learning_rate": 0.2,
+      "subsample": 0.9,
+      "colsample_bytree": 1.0
+    },
+    "val_auc_pr": 0.8723570660024943,
+    "val_f1": 0.9076923076923077
+  },
+  {
+    "trial": 14,
+    "run_id": "2026-07-14_g6_tune14_seed42",
+    "params": {
+      "max_depth": 6,
+      "n_estimators": 200,
+      "learning_rate": 0.1,
+      "subsample": 0.9,
+      "colsample_bytree": 0.7
+    },
+    "val_auc_pr": 0.8720635410438667,
+    "val_f1": 0.8992248062015504
+  },
+  {
+    "trial": 18,
+    "run_id": "2026-07-14_g6_tune18_seed42",
+    "params": {
+      "max_depth": 4,
+      "n_estimators": 500,
+      "learning_rate": 0.1,
+      "subsample": 0.7,
+      "colsample_bytree": 0.7
+    },
+    "val_auc_pr": 0.8693682914730873,
+    "val_f1": 0.8955223880597015
+  },
+  {
+    "trial": 17,
+    "run_id": "2026-07-14_g6_tune17_seed42",
+    "params": {
+      "max_depth": 8,
+      "n_estimators": 300,
+      "learning_rate": 0.1,
+      "subsample": 1.0,
+      "colsample_bytree": 1.0
+    },
+    "val_auc_pr": 0.8649016634765329,
+    "val_f1": 0.8939393939393939
+  },
+  {
+    "trial": 5,
+    "run_id": "2026-07-14_g6_tune05_seed42",
+    "params": {
+      "max_depth": 8,
+      "n_estimators": 200,
+      "learning_rate": 0.1,
+      "subsample": 1.0,
+      "colsample_bytree": 0.9
+    },
+    "val_auc_pr": 0.8630779096536363,
+    "val_f1": 0.9076923076923077
+  },
+  {
+    "trial": 1,
+    "run_id": "2026-07-14_g6_tune01_seed42",
+    "params": {
+      "max_depth": 4,
+      "n_estimators": 200,
+      "learning_rate": 0.2,
+      "subsample": 0.7,
+      "colsample_bytree": 1.0
+    },
+    "val_auc_pr": 0.8623899325887106,
+    "val_f1": 0.8805970149253731
+  },
+  {
+    "trial": 13,
+    "run_id": "2026-07-14_g6_tune13_seed42",
+    "params": {
+      "max_depth": 4,
+      "n_estimators": 200,
+      "learning_rate": 0.1,
+      "subsample": 0.9,
+      "colsample_bytree": 0.9
+    },
+    "val_auc_pr": 0.8620471742167993,
+    "val_f1": 0.8837209302325582
+  },
+  {
+    "trial": 6,
+    "run_id": "2026-07-14_g6_tune06_seed42",
+    "params": {
+      "max_depth": 3,
+      "n_estimators": 200,
+      "learning_rate": 0.2,
+      "subsample": 0.9,
+      "colsample_bytree": 0.9
+    },
+    "val_auc_pr": 0.790602166957503,
+    "val_f1": 0.8391608391608392
+  },
+  {
+    "trial": 2,
+    "run_id": "2026-07-14_g6_tune02_seed42",
+    "params": {
+      "max_depth": 3,
+      "n_estimators": 500,
+      "learning_rate": 0.1,
+      "subsample": 0.7,
+      "colsample_bytree": 0.7
+    },
+    "val_auc_pr": 0.7583134713881827,
+    "val_f1": 0.8275862068965517
+  },
+  {
+    "trial": 12,
+    "run_id": "2026-07-14_g6_tune12_seed42",
+    "params": {
+      "max_depth": 3,
+      "n_estimators": 500,
+      "learning_rate": 0.03,
+      "subsample": 0.9,
+      "colsample_bytree": 0.7
+    },
+    "val_auc_pr": 0.7468285880273232,
+    "val_f1": 0.8450704225352113
+  },
+  {
+    "trial": 7,
+    "run_id": "2026-07-14_g6_tune07_seed42",
+    "params": {
+      "max_depth": 6,
+      "n_estimators": 200,
+      "learning_rate": 0.03,
+      "subsample": 0.9,
+      "colsample_bytree": 0.7
+    },
+    "val_auc_pr": 0.7431858727274339,
+    "val_f1": 0.8345323741007195
+  },
+  {
+    "trial": 11,
+    "run_id": "2026-07-14_g6_tune11_seed42",
+    "params": {
+      "max_depth": 6,
+      "n_estimators": 500,
+      "learning_rate": 0.03,
+      "subsample": 1.0,
+      "colsample_bytree": 0.7
+    },
+    "val_auc_pr": 0.7428509395116201,
+    "val_f1": 0.8345323741007195
+  },
+  {
+    "trial": 10,
+    "run_id": "2026-07-14_g6_tune10_seed42",
+    "params": {
+      "max_depth": 3,
+      "n_estimators": 300,
+      "learning_rate": 0.03,
+      "subsample": 1.0,
+      "colsample_bytree": 0.9
+    },
+    "val_auc_pr": 0.7394772439681834,
+    "val_f1": 0.8201438848920863
+  },
+  {
+    "trial": 19,
+    "run_id": "2026-07-14_g6_tune19_seed42",
+    "params": {
+      "max_depth": 3,
+      "n_estimators": 300,
+      "learning_rate": 0.1,
+      "subsample": 0.9,
+      "colsample_bytree": 0.7
+    },
+    "val_auc_pr": 0.7391604550398796,
+    "val_f1": 0.8391608391608392
+  },
+  {
+    "trial": 3,
+    "run_id": "2026-07-14_g6_tune03_seed42",
+    "params": {
+      "max_depth": 3,
+      "n_estimators": 200,
+      "learning_rate": 0.03,
+      "subsample": 1.0,
+      "colsample_bytree": 1.0
+    },
+    "val_auc_pr": 0.7387672686718795,
+    "val_f1": 0.8345323741007195
+  },
+  {
+    "trial": 4,
+    "run_id": "2026-07-14_g6_tune04_seed42",
+    "params": {
+      "max_depth": 3,
+      "n_estimators": 500,
+      "learning_rate": 0.03,
+      "subsample": 1.0,
+      "colsample_bytree": 1.0
+    },
+    "val_auc_pr": 0.7387672686718795,
+    "val_f1": 0.8345323741007195
+  },
+  {
+    "trial": 8,
+    "run_id": "2026-07-14_g6_tune08_seed42",
+    "params": {
+      "max_depth": 3,
+      "n_estimators": 300,
+      "learning_rate": 0.03,
+      "subsample": 0.9,
+      "colsample_bytree": 0.9
+    },
+    "val_auc_pr": 0.7373110758836572,
+    "val_f1": 0.8226950354609929
+  },
+  {
+    "trial": 0,
+    "run_id": "2026-07-14_g6_tune00_seed42",
+    "params": {
+      "max_depth": 3,
+      "n_estimators": 200,
+      "learning_rate": 0.2,
+      "subsample": 0.9,
+      "colsample_bytree": 0.7
+    },
+    "val_auc_pr": 0.7289527578690969,
+    "val_f1": 0.8368794326241135
+  }
+]
