@@ -1,0 +1,23 @@
+schema_version: 1
+
+artifacts:
+  detector_run: experiments/runs/2026-07-14_g6_seed42
+  g4_run: experiments/runs/2026-07-14_g4_seed42
+  g5_run: experiments/runs/2026-07-14_g5_seed42
+  results_manifest: reports/results_manifest.json
+
+recorded_narrative_arm: strict
+
+demo_cases:
+  faithful_case_id: 42009
+  error_or_uncertainty_case_id: 120085
+  attack_case_id: 42009
+
+ollama:
+  host: http://127.0.0.1:11434
+  model: llama3:8b
+  timeout_seconds: 20
+
+server:
+  host: 127.0.0.1
+  port: 8000

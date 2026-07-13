@@ -8,3 +8,8 @@ __pycache__/
 .DS_Store
 .ipynb_checkpoints/
 experiments/tuning_runs/
+app/frontend/node_modules/
+app/frontend/dist/
+app/frontend/coverage/
+app/frontend/playwright-report/
+app/frontend/test-results/
