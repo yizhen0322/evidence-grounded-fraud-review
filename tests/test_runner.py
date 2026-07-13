@@ -153,3 +153,31 @@ def test_runner_hybrid_reconstruction_error(tmp_path):
     assert metrics["feature_names"][-1] == "recon_error"
     assert manifest["feature_names"] == metrics["feature_names"]
     assert (run_dir / "model" / "ae.keras").exists()
+
+
+def test_validation_only_run_does_not_score_or_write_test_predictions(tmp_path):
+    config = {
+        "group": "g0_tune00",
+        "features": "original",
+        "imbalance": "none",
+        "dedup": True,
+        "seed": 42,
+        "xgb_params": {"n_estimators": 20},
+    }
+
+    run_dir = run(
+        config,
+        data_path=make_synthetic_csv(tmp_path),
+        out_root=tmp_path / "tuning_runs",
+        validate_data=False,
+        require_clean=False,
+        evaluate_test=False,
+    )
+
+    metrics = json.loads((run_dir / "metrics.json").read_text())
+    manifest = validate_run_manifest(run_dir)
+    assert "val" in metrics
+    assert "test" not in metrics
+    assert metrics["runtime"]["test_inference_seconds"] is None
+    assert not (run_dir / "predictions.parquet").exists()
+    assert "predictions.parquet" not in manifest["artifacts"]

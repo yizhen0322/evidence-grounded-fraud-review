@@ -113,6 +113,7 @@ def run(
     out_root="experiments/runs",
     validate_data=True,
     require_clean=True,
+    evaluate_test=True,
 ) -> Path:
     """Execute one experiment and return its immutable run directory."""
     _validate_config(config)
@@ -184,33 +185,39 @@ def run(
 
     validation_scores = fraud_scores(model, X_val)
     threshold = select_threshold_max_f1(labels["val"], validation_scores)
-    inference_started = time.time()
-    test_scores = fraud_scores(model, X_test)
-    inference_seconds = time.time() - inference_started
 
     metrics = {
         "val": evaluate(labels["val"], validation_scores, threshold),
-        "test": evaluate(labels["test"], test_scores, threshold),
         "runtime": {
             "train_seconds": training_seconds,
-            "test_inference_seconds": inference_seconds,
-            "total_seconds": time.time() - started,
+            "test_inference_seconds": None,
+            "total_seconds": None,
         },
         "feature_names": feature_names,
         "resolved_xgb_params": _json_safe_parameters(xgb_parameters),
     }
-
-    predictions = pd.DataFrame(
-        {
-            CASE_ID: scaled["test"][CASE_ID].to_numpy(),
-            "y_true": labels["test"].to_numpy(),
-            "score": test_scores,
-            "pred": (test_scores >= threshold).astype(int),
-        }
-    )
-    if predictions[CASE_ID].isna().any() or not predictions[CASE_ID].is_unique:
-        raise RuntimeError("test prediction case_id contract violated")
-    predictions.to_parquet(run_dir / "predictions.parquet")
+    if evaluate_test:
+        inference_started = time.time()
+        test_scores = fraud_scores(model, X_test)
+        metrics["runtime"]["test_inference_seconds"] = (
+            time.time() - inference_started
+        )
+        metrics["test"] = evaluate(labels["test"], test_scores, threshold)
+        predictions = pd.DataFrame(
+            {
+                CASE_ID: scaled["test"][CASE_ID].to_numpy(),
+                "y_true": labels["test"].to_numpy(),
+                "score": test_scores,
+                "pred": (test_scores >= threshold).astype(int),
+            }
+        )
+        if (
+            predictions[CASE_ID].isna().any()
+            or not predictions[CASE_ID].is_unique
+        ):
+            raise RuntimeError("test prediction case_id contract violated")
+        predictions.to_parquet(run_dir / "predictions.parquet")
+    metrics["runtime"]["total_seconds"] = time.time() - started
     model.save_model(run_dir / "model" / "xgb.json")
     (run_dir / "config.yaml").write_text(
         yaml.safe_dump(config, sort_keys=False)
