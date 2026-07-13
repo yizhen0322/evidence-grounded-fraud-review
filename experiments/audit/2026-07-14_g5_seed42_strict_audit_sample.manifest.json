@@ -1,0 +1,37 @@
+{
+  "actual_n": 49,
+  "arm": "strict",
+  "blank_human_columns": [
+    "violation_found",
+    "violation_category",
+    "notes"
+  ],
+  "columns": [
+    "case_id",
+    "arm",
+    "evidence",
+    "delivered_text",
+    "violation_found",
+    "violation_category",
+    "notes"
+  ],
+  "generated_at": "2026-07-13T20:57:48.685679+00:00",
+  "immutable_columns": [
+    "case_id",
+    "arm",
+    "evidence",
+    "delivered_text"
+  ],
+  "immutable_rows_sha256": "1b690e318106be5cc58b482f8289c624f44b95d9b9fc9d251030d66e1b65e3a6",
+  "requested_n": 50,
+  "sample_csv": "/Users/yizhen/Documents/sunway\u2014\u2014yizhen/AAA_FYP/fraud-detection-fyp/experiments/audit/2026-07-14_g5_seed42_strict_audit_sample.csv",
+  "sample_csv_sha256_at_creation": "547c5c95137f194c7c855d63ad9ce99028b31256bd007c131527364bbcb0121a",
+  "sampling_seed": 42,
+  "schema_version": 1,
+  "source_code_sha256": {
+    "tools/make_audit_sample.py": "4b85920793ed14629d499d616f607ef97f3cafa3159844e51c9f4fd38fc1a947",
+    "tools/run_g5_narratives.py": "0ffd5a580b1eaff2fa5126ad4b314cc5975b7e7eac6bfd6de09659386a970547"
+  },
+  "source_g5_manifest_sha256": "78491f49d3e9b001943890568413840404b8a7a76fd83e8ab10ae83d9aaf836e",
+  "source_g5_run": "/Users/yizhen/Documents/sunway\u2014\u2014yizhen/AAA_FYP/fraud-detection-fyp/experiments/runs/2026-07-14_g5_seed42"
+}
