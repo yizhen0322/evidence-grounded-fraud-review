@@ -6,9 +6,14 @@ import re
 from dataclasses import dataclass
 
 SECTION_RE = re.compile(
-    r"\ANARRATIVE:\s*(?P<narrative>.+?)\n"
-    r"EVIDENCE:\n(?P<evidence>(?:-\s+[^\n]+\n)+)"
+    r"\ANARRATIVE:\s*(?P<narrative>.+?)\n+\s*"
+    r"EVIDENCE:\s*\n(?P<evidence>(?:-\s+[^\n]+\n)+)\s*"
     r"ACTION:\s*Recommended for manual review\.\s*\Z",
+    re.S,
+)
+CONTENT_SECTION_RE = re.compile(
+    r"(?:\A|\n)NARRATIVE:\s*(?P<narrative>.+?)\n+\s*"
+    r"EVIDENCE:\s*\n(?P<evidence>(?:-\s+[^\n]+(?:\n|\Z))+)",
     re.S,
 )
 BULLET_RE = re.compile(
@@ -38,6 +43,10 @@ DIRECTION_PHRASES = {
         "increasing the risk",
         "raising risk",
         "raising the risk",
+        "contributes to increased risk",
+        "contributes to an increased risk",
+        "contribute to increased risk",
+        "contribute to an increased risk",
     ),
     "decreases_risk": (
         "decreases risk",
@@ -52,8 +61,38 @@ DIRECTION_PHRASES = {
         "decreasing the risk",
         "lowering risk",
         "lowering the risk",
+        "contributes to decreased risk",
+        "contributes to a decreased risk",
+        "contribute to decreased risk",
+        "contribute to a decreased risk",
     ),
 }
+NEUTRAL_GROUNDING_PHRASES = (
+    "is relevant",
+    "is relevant to risk",
+    "is related to risk",
+    "relates to risk",
+)
+FIRST_CLAUSE_PREFIXES = {
+    "",
+    "both",
+    "together",
+    "together,",
+    "overall",
+    "overall,",
+    "the presence of",
+    "this case is rated high risk due to",
+    "this case is rated medium risk due to",
+    "this case is rated low risk due to",
+}
+CLAUSE_SEPARATOR_RE = re.compile(
+    r"\s*(?:"
+    r",\s*(?:(?:and|while|but|whereas)\s+)?|"
+    r";\s*(?:(?:and|while|but|whereas)\s+)?|"
+    r"(?:and|while|but|whereas)\s+"
+    r")",
+    re.I,
+)
 
 
 @dataclass(frozen=True)
@@ -67,18 +106,28 @@ class GuardrailResult:
 def fallback_text(record: dict) -> str:
     """Produce a deterministic output that does not depend on the LLM."""
     lines = [f"Risk level: {record['risk_bucket']}. Standardized reason codes:"]
+    directions = {
+        "increases_risk": "increases risk",
+        "decreases_risk": "decreases risk",
+    }
     for code in sorted(record["codes"], key=lambda item: item["rank"]):
-        direction = (
-            "increases risk"
-            if code["direction"] == "increases_risk"
-            else "decreases risk"
-        )
+        try:
+            direction = directions[code["direction"]]
+        except KeyError as error:
+            raise ValueError(
+                f"unknown reason-code direction: {code['direction']}"
+            ) from error
         lines.append(f"{code['rank']}. {code['feature']} - {direction}")
     return "\n".join(lines)
 
 
 def _sections(text: str) -> re.Match[str] | None:
     return SECTION_RE.fullmatch(text.strip())
+
+
+def _content_sections(text: str) -> re.Match[str] | None:
+    """Extract judgeable narrative/evidence content independent of ACTION format."""
+    return CONTENT_SECTION_RE.search(text.strip())
 
 
 def _parse_bullets(evidence: str) -> list[tuple[str, str]] | None:
@@ -133,11 +182,13 @@ def _format_ok(text: str, known_features: list[str]) -> bool:
     )
 
 
-def _parse_narrative_clauses(
+def _parse_feature_clauses(
     narrative: str,
     known_features: list[str],
-) -> list[tuple[str, str]] | None:
-    """Parse a closed grammar so free-text reasons cannot accompany evidence."""
+    *,
+    allow_neutral: bool,
+) -> list[tuple[str, str | None]] | None:
+    """Parse a closed clause grammar while keeping grounding and direction separate."""
     sentences = [
         sentence.strip()
         for sentence in re.split(r"(?<=[.!?])\s+", narrative.strip())
@@ -154,41 +205,37 @@ def _parse_narrative_clauses(
         for direction, phrases in DIRECTION_PHRASES.items()
         for phrase in phrases
     }
-    direction_alt = "|".join(
+    predicate_to_direction: dict[str, str | None] = dict(phrase_to_direction)
+    if allow_neutral:
+        predicate_to_direction.update(
+            {phrase: None for phrase in NEUTRAL_GROUNDING_PHRASES}
+        )
+    predicate_alt = "|".join(
         re.escape(phrase)
-        for phrase in sorted(phrase_to_direction, key=len, reverse=True)
+        for phrase in sorted(predicate_to_direction, key=len, reverse=True)
     )
     clause_re = re.compile(
         rf"\b(?P<features>(?:{feature_alt})(?:(?:\s*,\s*(?:and\s+)?|\s+and\s+)(?:{feature_alt}))*)\b\s+"
-        rf"(?:also\s+)?"
-        rf"(?P<direction>{direction_alt})"
+        rf"(?:(?:also|all)\s+)?"
+        rf"(?P<predicate>{predicate_alt})"
         rf"(?:\s+for this transaction)?",
         re.I,
     )
     matches = list(clause_re.finditer(body))
     if not matches:
         return None
-    rows: list[tuple[str, str]] = []
+    rows: list[tuple[str, str | None]] = []
     cursor = 0
     canonical_features = {feature.lower(): feature for feature in known_features}
     for index, match in enumerate(matches):
         separator = body[cursor : match.start()]
         if index == 0:
-            if separator.strip().lower() not in {
-                "",
-                "both",
-                "this case is rated high risk due to",
-                "this case is rated medium risk due to",
-                "this case is rated low risk due to",
-            }:
+            normalized = re.sub(r"\s+", " ", separator.strip().lower())
+            if normalized not in FIRST_CLAUSE_PREFIXES:
                 return None
-        elif re.fullmatch(
-            r"\s*(?:,\s*(?:(?:and|while)\s+)?|(?:and|while)\s+)",
-            separator,
-            re.I,
-        ) is None:
+        elif CLAUSE_SEPARATOR_RE.fullmatch(separator) is None:
             return None
-        phrase = re.sub(r"\s+", " ", match.group("direction").lower())
+        phrase = re.sub(r"\s+", " ", match.group("predicate").lower())
         for raw_feature in re.split(
             r"\s*(?:,\s*(?:and\s+)?|\s+and\s+)\s*",
             match.group("features"),
@@ -197,7 +244,7 @@ def _parse_narrative_clauses(
             rows.append(
                 (
                     canonical_features[raw_feature.lower()],
-                    phrase_to_direction[phrase],
+                    predicate_to_direction[phrase],
                 )
             )
         cursor = match.end()
@@ -206,8 +253,22 @@ def _parse_narrative_clauses(
     return rows
 
 
+def _parse_narrative_clauses(
+    narrative: str,
+    known_features: list[str],
+) -> list[tuple[str, str]] | None:
+    rows = _parse_feature_clauses(
+        narrative,
+        known_features,
+        allow_neutral=False,
+    )
+    if rows is None or any(direction is None for _, direction in rows):
+        return None
+    return [(feature, str(direction)) for feature, direction in rows]
+
+
 def _completeness_ok(text: str, record: dict) -> bool:
-    match = _sections(text)
+    match = _content_sections(text)
     if match is None:
         return False
     bullets = _parse_bullets(match.group("evidence"))
@@ -225,14 +286,18 @@ def _completeness_ok(text: str, record: dict) -> bool:
 
 
 def _grounding_ok(text: str, record: dict, known_features: list[str]) -> bool:
-    match = _sections(text)
+    match = _content_sections(text)
     if match is None:
         return False
     allowed = {code["feature"] for code in record["codes"]}
     allowed_lower = {feature.lower() for feature in allowed}
-    narrative_rows = _parse_narrative_clauses(
+    bullets = _parse_bullets(match.group("evidence"))
+    if bullets is None or {feature for feature, _ in bullets} - allowed:
+        return False
+    narrative_rows = _parse_feature_clauses(
         match.group("narrative"),
         known_features,
+        allow_neutral=True,
     )
     if narrative_rows is None:
         return False
@@ -264,7 +329,7 @@ def _grounding_ok(text: str, record: dict, known_features: list[str]) -> bool:
 
 
 def _direction_ok(text: str, record: dict, known_features: list[str]) -> bool:
-    match = _sections(text)
+    match = _content_sections(text)
     if match is None:
         return False
     bullets = _parse_bullets(match.group("evidence"))

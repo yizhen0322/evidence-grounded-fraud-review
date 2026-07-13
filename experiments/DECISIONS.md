@@ -36,24 +36,23 @@ their predeclared defaults. Cross-group differences therefore must not be
 attributed solely to architecture or imbalance handling. G6 was frozen because
 of its validation result, not because it was guaranteed to lead every test seed.
 
-## 2026-07-14 — G5 structured transport and fixed-template rendering
+## 2026-07-14 — G5 raw-output paired-policy measurement
 
-Two local quick passes showed that `llama3:8b` repeatedly added preambles,
-Unicode bullets, blank lines, or altered the fixed ACTION line even under the
-strict prompt. This made transport-format noise dominate the faithfulness
-experiment and produced 100% fallback in both prompt arms.
+Early local quick passes showed that `llama3:8b` sometimes added preambles,
+Unicode bullets, blank lines, or altered the fixed ACTION line. A temporary
+structured-output experiment suppressed those behaviours before validation and
+therefore did not represent the approved OFF-policy raw-output baseline. Its
+diagnostic acceptance counts are superseded and are not reportable results.
 
-G5 therefore uses Ollama's local JSON-schema structured-output parameter for
-both strict and simple prompt arms. The schema stabilizes transport shape only:
-it accepts free narrative text plus feature/direction items and does not bind
-features to the evidence. The raw JSON response is retained, local code renders
-it once into the fixed text template, and that same rendered candidate is used
-for both OFF-policy detected-violation measurement and ON-policy
-validate-or-fallback delivery. The strict and simple arms use the same schema,
-temperature, model, and evidence; only their faithfulness instructions differ.
+The final design sends the same fixed plaintext template to both prompt arms but
+does not use an Ollama JSON schema, parser, renderer, or post-processing step.
+The exact raw response string is retained and analysed OFF policy. The identical
+unmodified string is then used ON policy for deterministic validate-or-fallback
+delivery. Empty or malformed model text is a judged format failure; only an HTTP
+or Ollama API transport failure is classified as unavailable.
 
-An 8-case quick pass after this change produced 5/8 accepted strict candidates
-and 0/8 accepted simple candidates under the current validator. These quick-run
-figures are diagnostic only and are not reportable G5 results. The final run is
-created only from a clean committed tree, requires zero unavailable model calls,
-and records the exact prompt/client/validator/calibration hashes.
+The final run is created only from a clean committed tree, requires both prompt
+arms over the complete G4 case set, requires zero transport failures, passes the
+versioned calibration gate, pins the Ollama version and immutable model digest,
+and records the generation seed, complete options, prompt hashes, client,
+validator, corpus, calibration, and runner hashes.

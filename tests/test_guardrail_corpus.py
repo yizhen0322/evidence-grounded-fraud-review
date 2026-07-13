@@ -9,6 +9,13 @@ def test_corpus_has_required_size_categories_and_unique_ids(tmp_path):
     assert len(attacks) >= 150
     assert len(faithful) >= 40
     assert len({item["category"] for item in attacks}) >= 9
+    assert {
+        "together_prefix",
+        "overall_prefix",
+        "semicolon_connector",
+        "but_connector",
+        "whereas_connector",
+    }.issubset({item["category"] for item in faithful})
     assert len({item["corpus_id"] for item in items}) == len(items)
 
     path = tmp_path / "corpus.jsonl"

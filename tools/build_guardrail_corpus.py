@@ -191,6 +191,9 @@ def faithful_for(record: dict) -> list[tuple[str, str]]:
         ("canonical_while", canonical_text(record)),
         ("conjunction_and", canonical_text(record, joiner=", and ")),
         ("comma_list", canonical_text(record, joiner=", ")),
+        ("semicolon_connector", canonical_text(record, joiner="; ")),
+        ("but_connector", canonical_text(record, joiner=", but ")),
+        ("whereas_connector", canonical_text(record, joiner=", whereas ")),
     ]
     canonical = canonical_text(record)
     narrative, evidence = canonical.split("\nEVIDENCE:\n", 1)
@@ -207,6 +210,20 @@ def faithful_for(record: dict) -> list[tuple[str, str]]:
             (
                 "safe_also_modifier",
                 f"{narrative.replace(' increases risk', ' also increases risk', 1).replace(' decreases risk', ' also decreases risk', 1)}\nEVIDENCE:\n{evidence}",
+            ),
+            (
+                "together_prefix",
+                f"{narrative.replace(' risk. ', ' risk. Together, ', 1)}\nEVIDENCE:\n{evidence}",
+            ),
+            (
+                "overall_prefix",
+                f"{narrative.replace(' risk. ', ' risk. Overall, ', 1)}\nEVIDENCE:\n{evidence}",
+            ),
+            (
+                "section_blank_lines",
+                canonical.replace("\nEVIDENCE:\n", "\n\nEVIDENCE:\n").replace(
+                    "\nACTION:", "\n\nACTION:"
+                ),
             ),
         ]
     )
@@ -245,6 +262,24 @@ def faithful_for(record: dict) -> list[tuple[str, str]]:
                 + "\nACTION: Recommended for manual review."
             )
             items.append(("oxford_grouped_direction", oxford))
+            risk_word = (
+                "increased" if direction == "increases_risk" else "decreased"
+            )
+            article = "an" if direction == "increases_risk" else "a"
+            presence = (
+                f"NARRATIVE: This case is rated {record['risk_bucket']} risk. "
+                "The presence of "
+                + ", ".join(code["feature"] for code in codes[:-1])
+                + (", and " if len(codes) > 2 else " and ")
+                + codes[-1]["feature"]
+                + f" all contribute to {article} {risk_word} risk.\n\nEVIDENCE:\n"
+                + "\n".join(
+                    f"- {code['feature']} - {DIRWORD[code['direction']]}"
+                    for code in codes
+                )
+                + "\n\nACTION: Recommended for manual review."
+            )
+            items.append(("presence_contribution", presence))
             gerund = "increasing risk" if direction == "increases_risk" else "decreasing risk"
             due_to = (
                 f"NARRATIVE: This case is rated {record['risk_bucket']} risk. "

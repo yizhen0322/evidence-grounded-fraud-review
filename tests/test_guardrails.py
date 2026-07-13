@@ -80,6 +80,25 @@ def test_unfaithful_or_malformed_narratives_fail_closed(bad, failed_check):
     assert result.final_text == fallback_text(RECORD)
 
 
+def test_ambiguous_allowed_feature_is_grounded_but_has_no_direction():
+    text = GOOD.replace("V10 increases risk", "V10 is relevant")
+    result = validate_narrative(text, RECORD, KNOWN)
+    assert result.checks["grounding"] is True
+    assert result.checks["direction"] is False
+    assert result.fallback
+
+
+def test_missing_action_is_only_a_format_failure_when_content_is_faithful():
+    text = GOOD.replace("\nACTION: Recommended for manual review.", "")
+    result = validate_narrative(text, RECORD, KNOWN)
+    assert result.checks == {
+        "format": False,
+        "completeness": True,
+        "grounding": True,
+        "direction": True,
+    }
+
+
 def test_fallback_text_lists_codes_in_rank_order():
     text = fallback_text(RECORD)
     assert text.index("V14") < text.index("V10") and "High" in text
@@ -102,6 +121,21 @@ def test_fallback_text_lists_codes_in_rank_order():
             "V14 decreases risk",
             "V14 lowers risk",
             1,
+        ),
+        GOOD.replace(
+            "V10 increases risk for this transaction, while V14 decreases risk",
+            "Together, V10 increases risk; V14 decreases risk",
+        ),
+        GOOD.replace(
+            "V10 increases risk for this transaction, while V14 decreases risk",
+            "Overall, V10 increases risk, whereas V14 decreases risk",
+        ),
+        GOOD.replace(
+            "V10 increases risk for this transaction, while V14 decreases risk",
+            "V10 increases risk, but V14 decreases risk",
+        ),
+        GOOD.replace("\nEVIDENCE:\n", "\n\nEVIDENCE:\n").replace(
+            "\nACTION:", "\n\nACTION:"
         ),
     ],
 )
@@ -136,6 +170,24 @@ def test_same_direction_features_may_share_an_explicit_plural_direction():
 EVIDENCE:
 - V14 - increases risk
 - V10 - increases risk
+ACTION: Recommended for manual review."""
+    assert validate_narrative(text, record, KNOWN).ok
+
+
+def test_presence_contribution_paraphrase_is_accepted():
+    record = {
+        **RECORD,
+        "codes": [
+            {**RECORD["codes"][0], "direction": "increases_risk"},
+            RECORD["codes"][1],
+        ],
+    }
+    text = """NARRATIVE: This case is rated High risk. The presence of V14 and V10 all contribute to an increased risk.
+
+EVIDENCE:
+- V14 - increases risk
+- V10 - increases risk
+
 ACTION: Recommended for manual review."""
     assert validate_narrative(text, record, KNOWN).ok
 

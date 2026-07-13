@@ -1,4 +1,9 @@
 {
+  "candidate_preprocessing": {
+    "mode": "identity_raw_text",
+    "source": "src/narratives/llm_client.py",
+    "source_sha256": "d6d962c3f6e8687930039155d0ad0570b2ddaa8ae8d7927b7907a8c64dbb5b2a"
+  },
   "categories": {
     "attack/ambiguous_direction": {
       "interception_rate": {
@@ -150,6 +155,16 @@
         "rate": 1.0
       }
     },
+    "faithful/but_connector": {
+      "acceptance_rate": {
+        "ci95": [
+          0.8513,
+          1.0
+        ],
+        "n": 22,
+        "rate": 1.0
+      }
+    },
     "faithful/canonical_while": {
       "acceptance_rate": {
         "ci95": [
@@ -220,7 +235,27 @@
         "rate": 1.0
       }
     },
+    "faithful/overall_prefix": {
+      "acceptance_rate": {
+        "ci95": [
+          0.8513,
+          1.0
+        ],
+        "n": 22,
+        "rate": 1.0
+      }
+    },
     "faithful/oxford_grouped_direction": {
+      "acceptance_rate": {
+        "ci95": [
+          0.6756,
+          1.0
+        ],
+        "n": 8,
+        "rate": 1.0
+      }
+    },
+    "faithful/presence_contribution": {
       "acceptance_rate": {
         "ci95": [
           0.6756,
@@ -249,12 +284,54 @@
         "n": 22,
         "rate": 1.0
       }
+    },
+    "faithful/section_blank_lines": {
+      "acceptance_rate": {
+        "ci95": [
+          0.8513,
+          1.0
+        ],
+        "n": 22,
+        "rate": 1.0
+      }
+    },
+    "faithful/semicolon_connector": {
+      "acceptance_rate": {
+        "ci95": [
+          0.8513,
+          1.0
+        ],
+        "n": 22,
+        "rate": 1.0
+      }
+    },
+    "faithful/together_prefix": {
+      "acceptance_rate": {
+        "ci95": [
+          0.8513,
+          1.0
+        ],
+        "n": 22,
+        "rate": 1.0
+      }
+    },
+    "faithful/whereas_connector": {
+      "acceptance_rate": {
+        "ci95": [
+          0.8513,
+          1.0
+        ],
+        "n": 22,
+        "rate": 1.0
+      }
     }
   },
   "corpus": "corpus/guardrail_corpus_v1.jsonl",
-  "corpus_sha256": "3be2cc69a88b88e11a81cfd6a0ee59174f6fd3bf186ef4391f3a21dce14b4dd3",
+  "corpus_builder": "tools/build_guardrail_corpus.py",
+  "corpus_builder_sha256": "9362874550ee2b08cac26b93601bdf6bd3b67b14fbc06aa75161be0ead8c006e",
+  "corpus_sha256": "7920ce3d69c0646708bfead9f2156c2b2334f451553ed9c7221b36c167623012",
   "instrument": "src/narratives/guardrails.py",
-  "instrument_sha256": "9974d7586259f68a238a772e62f536330711e046c2c5988d49a0e38b4245534e",
+  "instrument_sha256": "c3429e2752045add257e0df8489e90a19f0f4ff23c5e414d39fd8f4b9150cbcc",
   "known_features": [
     "Time",
     "V1",
@@ -287,7 +364,7 @@
     "V28",
     "Amount"
   ],
-  "n_items": 508,
+  "n_items": 648,
   "overall": {
     "attack_interception": {
       "ci95": [
@@ -301,9 +378,9 @@
     "false_rejection": {
       "ci95": [
         0.0,
-        0.0211
+        0.0119
       ],
-      "n": 178,
+      "n": 318,
       "rate": 0.0
     },
     "gate_passed": true

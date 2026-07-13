@@ -49,6 +49,15 @@ def calibrate(path: str | Path) -> tuple[dict, list[int]]:
         "n_items": len(items),
         "instrument": "src/narratives/guardrails.py",
         "instrument_sha256": sha256_file("src/narratives/guardrails.py"),
+        "candidate_preprocessing": {
+            "mode": "identity_raw_text",
+            "source": "src/narratives/llm_client.py",
+            "source_sha256": sha256_file("src/narratives/llm_client.py"),
+        },
+        "corpus_builder": "tools/build_guardrail_corpus.py",
+        "corpus_builder_sha256": sha256_file(
+            "tools/build_guardrail_corpus.py"
+        ),
         "known_features": KNOWN,
         "scope": (
             "Synthetic, template-constrained adversarial calibration. Rates describe "

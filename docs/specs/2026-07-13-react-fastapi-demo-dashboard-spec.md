@@ -718,7 +718,7 @@ Ollama-unavailable response remains HTTP-successful and displayable:
     "direction": "NOT_RUN"
   },
   "fallback": true,
-  "fallback_reason": "llm_unavailable",
+  "fallback_reason": "llm_transport_unavailable",
   "latency_seconds": 20.0
 }
 ```

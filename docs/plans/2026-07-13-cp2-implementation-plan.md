@@ -2542,7 +2542,7 @@ def summarize_faithfulness(rows: list[dict], unavailable: int, model: str) -> di
         "grounding_rate": rate("grounding"),
         "direction_consistency_rate": rate("direction"),
         "fallback_rate": sum(row["fallback"] for row in rows) / n if n else 0.0,
-        "llm_unavailable_count": unavailable,
+        "llm_transport_unavailable_count": unavailable,
         "mean_latency_seconds": (
             sum(row["latency_seconds"] for row in rows) / n if n else 0.0
         ),
@@ -2579,7 +2579,7 @@ def main():
             "fallback": result.fallback if result else True,
             "fallback_reason": (
                 "guardrail_failed" if result and result.fallback else
-                "llm_unavailable" if result is None else None
+                "llm_transport_unavailable" if result is None else None
             ),
             "final_text": result.final_text if result else fallback_text(rec),
             "latency_seconds": latency,
@@ -2679,7 +2679,7 @@ def test_faithfulness_rates_have_explicit_denominators_and_reasons():
         {"checks": {"format": True, "grounding": True, "direction": False},
          "fallback": True, "fallback_reason": "guardrail_failed", "latency_seconds": 1.0},
         {"checks": None, "fallback": True,
-         "fallback_reason": "llm_unavailable", "latency_seconds": 3.0},
+         "fallback_reason": "llm_transport_unavailable", "latency_seconds": 3.0},
     ]
     result = summarize_faithfulness(rows, unavailable=1, model="local-test")
     assert result["n_cases"] == 2
@@ -2687,7 +2687,7 @@ def test_faithfulness_rates_have_explicit_denominators_and_reasons():
     assert result["compliance_rate"] == 1.0
     assert result["direction_consistency_rate"] == 0.0
     assert result["fallback_rate"] == 1.0
-    assert result["llm_unavailable_count"] == 1
+    assert result["llm_transport_unavailable_count"] == 1
 
 
 def test_g5_manifest_links_exact_g4_and_inherits_seed(tmp_path):
@@ -3037,7 +3037,7 @@ Expected on first run: **the `invented_feature` category will likely FAIL agains
 
 **Interfaces (changed):**
 - `GuardrailResult.checks` becomes FOUR keys: `format`, `completeness` (all evidence features present, bullets in rank order), `grounding` (no unlisted or unknown feature tokens anywhere), `direction`. Task 7.4 dashboard note: Recorded/Live modes display four badges, not three.
-- `faithfulness.json` schema becomes `{"model", "llm_unavailable_count", "arms": {"strict": <arm>, "simple": <arm>}}` where `<arm>` contains `off_policy_prevalence` (per-check detected-violation rates + any-violation, each `{rate, n, ci95}`) and `on_policy_delivery` (fallback rate with CI, `residual_detected_violation_on_delivered` marked `by_construction: true`, mean latency).
+- `faithfulness.json` schema becomes `{"model", "ollama_runtime", "generation", "llm_transport_unavailable_count", "arms": {"strict": <arm>, "simple": <arm>}}` where `<arm>` contains `off_policy_prevalence` (per-check detected-violation rates + any-violation, each `{rate, n, ci95}`) and `on_policy_delivery` (fallback rate with CI, `residual_detected_violation_on_delivered` marked `by_construction: true`, mean latency). The exact raw response is the candidate for both policies; no schema, parser, renderer, or normalization may sit between generation and validation.
 
 - [ ] **Step 1: Guardrails delta.** Split `_grounding_ok` into `_completeness_ok` + `_grounding_ok`, add unknown-token detection (fixes the `invented_feature` calibration failure):
 
@@ -3110,7 +3110,7 @@ def summarize_arm(rows: list[dict]) -> dict:
     }
 ```
 
-and write `faithfulness = {"model": args.model, "llm_unavailable_count": unavailable, "arms": {arm: summarize_arm([r for r in rows if r["arm"] == arm]) for arm in arms}}`. Update `tests/test_g5_contract.py::test_faithfulness_rates_have_explicit_denominators_and_reasons` to the new schema (rows carry `"arm": "strict"`; assert `result["off_policy_prevalence"]["detected_direction_violation"]["rate"] == 1.0`, `["n"] == 1`, `ci95` present; assert `on_policy_delivery.fallback.rate == 1.0`). The manifest `extra` block records `{"arms": arms, "corpus_version": "v1", "calibration": "experiments/calibration/validator_calibration_v1.json"}`.
+and write `faithfulness = {"model": args.model, "ollama_runtime": runtime, "generation": generation_metadata, "llm_transport_unavailable_count": unavailable, "arms": {arm: summarize_arm([r for r in rows if r["arm"] == arm]) for arm in arms}}`. Update `tests/test_g5_contract.py::test_faithfulness_rates_have_explicit_denominators_and_reasons` to the new schema (rows carry `"arm": "strict"`; assert `result["off_policy_prevalence"]["detected_direction_violation"]["rate"] == 1.0`, `["n"] == 1`, `ci95` present; assert `on_policy_delivery.fallback.rate == 1.0`). The manifest `extra` block records both arms, corpus/calibration identity, Ollama version and immutable model digest, generation seed/options, prompt hashes, and zero transport failures for a reportable run.
 
 - [ ] **Step 3:** Quick pass both arms (`--limit 5`), read all 10 narratives manually; then full run over all flagged cases × both arms (only after Task 6.7 gate is green). **Step 4: Commit** — `git commit -am "feat+exp: paired delivery-policy G5 with dual prompt arms and Wilson CIs"`
 
@@ -3120,11 +3120,11 @@ and write `faithfulness = {"model": args.model, "llm_unavailable_count": unavail
 - Create: `tools/make_audit_sample.py`, `tools/score_audit.py`
 
 **Interfaces:**
-- `make_audit_sample.py --g5-run <dir> --arm strict --n 50 --seed 42` → `experiments/audit/<run>_<arm>_audit_sample.csv` sampled from ACCEPTED (non-fallback) rows only, columns: `case_id, arm, evidence, delivered_text, violation_found, violation_category, notes` — the last three EMPTY (human fills them; the file deliberately omits raw model output and check results so the audit is blind).
-- `score_audit.py <filled.csv>` → `experiments/audit/audit_result.json` with `undetected_violation_rate` `{rate, n, ci95}` (violation_found normalized yes/no; any other value → error).
+- `make_audit_sample.py --g5-run <dir> --arm strict --n 50 --seed 42` validates a clean reportable G5 manifest, then writes `experiments/audit/<run>_<arm>_audit_sample.csv` plus a provenance-bound `.manifest.json`. The CSV is sampled from ACCEPTED (non-fallback) rows only and contains: `case_id, arm, evidence, delivered_text, violation_found, violation_category, notes` — the last three EMPTY (human fills them; the file deliberately omits raw model output and check results so the audit is blind).
+- `score_audit.py <filled.csv> --sample-manifest <sample.manifest.json> --human-attestation "<manual-label statement>"` → `experiments/audit/audit_result.json` with `undetected_violation_rate` `{rate, n, ci95}`. It requires the exact blinded schema, a non-empty unique row set, unchanged immutable fields, yes/no labels, categories for violations, and explicit human attestation.
 - **Integrity rule (also in AGENTS.md): the `violation_found/violation_category/notes` columns are filled by the student (and ideally a second annotator on a subsample). No AI agent may fill or edit them.** This audit is what licenses the report sentence: "residual violation rate on delivered narratives, estimated by blinded manual audit of n=50: X% (95% CI a–b)."
 
-- [ ] **Step 1:** Implement both scripts (pandas: read `narratives.jsonl`, filter `arm` + `fallback == False`, `df.sample(n=min(n, len(df)), random_state=seed)`; scorer maps yes/no → `_rate_block`-style output using `wilson_ci`). **Step 2:** Generate the sample from the final G5 run. **Step 3: Commit** the tools and the (unfilled) sample sheet; the filled sheet + `audit_result.json` are committed after the human pass.
+- [ ] **Step 1:** Implement both scripts with reportable-G5 validation, sample-manifest hashing, immutable-row binding, exact-schema checks, and explicit human attestation; the scorer maps yes/no → `_rate_block`-style output using `wilson_ci`. **Step 2:** Generate the sample from the final G5 run. **Step 3: Commit** the tools, sample manifest, and the unfilled sample sheet; the filled sheet + `audit_result.json` are committed only after the human pass.
 
 ### Reporting deltas (fold into Tasks 7.1/7.3)
 

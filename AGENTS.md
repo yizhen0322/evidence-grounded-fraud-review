@@ -63,7 +63,7 @@ The approved methodology is in `../Proposal_Capstone_Project.pdf` (Chapter 3). D
 - Guardrails are code, not prompts: feature-grounding check, direction-consistency check, template-format check. Any failure → fall back to raw reason codes. Log compliance/grounding/direction/fallback rates.
 - Direction semantics: a feature whose SHAP value pushes toward fraud is "↑ risk"; toward legitimate is "↓ risk". A narrative that flips a direction is a guardrail failure, not a style issue.
 - Measurement wording (hard rules): every violation metric is a **detected** violation; never write "guardrails eliminate violations" — "residual detected violation rate on delivered narratives" is 0 by construction and must be labelled `by_construction`; the validator is a **corpus-calibrated instrument**, calibrated before it measures; the novelty claim always reads "within the reviewed literature … that we identified", never a bare "first".
-- Manual audit integrity: the `violation_found` / `violation_category` / `notes` columns of any audit sheet are filled ONLY by humans. No AI agent may fill, edit, or "correct" them.
+- Manual audit integrity: the `violation_found` / `violation_category` / `notes` columns of any audit sheet are filled ONLY by humans. No AI agent may fill, edit, or "correct" them. Audit scoring requires the provenance-bound sample manifest and an explicit human attestation; never infer human authorship from a CSV.
 
 ## Engineering conventions
 
