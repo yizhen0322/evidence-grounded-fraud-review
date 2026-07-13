@@ -152,7 +152,7 @@ def test_reported_run_aborts_without_writing_when_any_llm_call_is_unavailable(
         lambda **_kwargs: {"overall": {"gate_passed": True}, "n_items": 1},
     )
     monkeypatch.setattr(
-        "tools.run_g5_narratives.generate_narrative",
+        "tools.run_g5_narratives.generate_narrative_response",
         lambda *args, **kwargs: (_ for _ in ()).throw(LLMUnavailable("offline")),
     )
     output = tmp_path / "reported-g5"

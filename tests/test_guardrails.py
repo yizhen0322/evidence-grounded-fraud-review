@@ -94,6 +94,10 @@ def test_fallback_text_lists_codes_in_rank_order():
             "Both V14 decreases risk and V10 increases risk for this transaction",
         ),
         GOOD.replace("V10 increases risk", "V10 increases the risk"),
+        GOOD.replace(
+            "V10 increases risk for this transaction, while V14 decreases risk",
+            "V10 increases risk, while V14 decreases risk",
+        ),
         GOOD.replace("V10 increases risk", "V10 raises risk").replace(
             "V14 decreases risk",
             "V14 lowers risk",
@@ -118,3 +122,45 @@ def test_faithful_conjunctions_are_not_false_rejected(text):
 )
 def test_adversarial_pass_seeking_narratives_are_rejected(bad):
     assert validate_narrative(bad, RECORD, KNOWN).fallback
+
+
+def test_same_direction_features_may_share_an_explicit_plural_direction():
+    record = {
+        **RECORD,
+        "codes": [
+            {**RECORD["codes"][0], "direction": "increases_risk"},
+            RECORD["codes"][1],
+        ],
+    }
+    text = """NARRATIVE: This case is rated High risk. V14 and V10 increase risk.
+EVIDENCE:
+- V14 - increases risk
+- V10 - increases risk
+ACTION: Recommended for manual review."""
+    assert validate_narrative(text, record, KNOWN).ok
+
+
+@pytest.mark.parametrize(
+    "second_sentence",
+    [
+        "V14, V10, and V12 increase risk.",
+        "This case is rated High risk due to V14 increasing risk, V10 increasing risk, and V12 increasing risk.",
+        "V14 and V10 increase risk, while V12 also increases risk.",
+    ],
+)
+def test_safe_grouped_llm_phrasings_are_accepted(second_sentence):
+    record = {
+        **RECORD,
+        "codes": [
+            {**RECORD["codes"][0], "direction": "increases_risk"},
+            RECORD["codes"][1],
+            {"feature": "V12", "direction": "increases_risk", "rank": 3},
+        ],
+    }
+    text = f"""NARRATIVE: This case is rated High risk. {second_sentence}
+EVIDENCE:
+- V14 - increases risk
+- V10 - increases risk
+- V12 - increases risk
+ACTION: Recommended for manual review."""
+    assert validate_narrative(text, record, KNOWN).ok

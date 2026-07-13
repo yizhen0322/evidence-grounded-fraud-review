@@ -28,14 +28,30 @@ DIRECTION_PHRASES = {
     "increases_risk": (
         "increases risk",
         "increases the risk",
+        "increase risk",
+        "increase the risk",
         "raises risk",
         "raises the risk",
+        "raise risk",
+        "raise the risk",
+        "increasing risk",
+        "increasing the risk",
+        "raising risk",
+        "raising the risk",
     ),
     "decreases_risk": (
         "decreases risk",
         "decreases the risk",
+        "decrease risk",
+        "decrease the risk",
         "lowers risk",
         "lowers the risk",
+        "lower risk",
+        "lower the risk",
+        "decreasing risk",
+        "decreasing the risk",
+        "lowering risk",
+        "lowering the risk",
     ),
 }
 
@@ -143,7 +159,8 @@ def _parse_narrative_clauses(
         for phrase in sorted(phrase_to_direction, key=len, reverse=True)
     )
     clause_re = re.compile(
-        rf"\b(?P<feature>{feature_alt})\b\s+"
+        rf"\b(?P<features>(?:{feature_alt})(?:(?:\s*,\s*(?:and\s+)?|\s+and\s+)(?:{feature_alt}))*)\b\s+"
+        rf"(?:also\s+)?"
         rf"(?P<direction>{direction_alt})"
         rf"(?:\s+for this transaction)?",
         re.I,
@@ -157,7 +174,13 @@ def _parse_narrative_clauses(
     for index, match in enumerate(matches):
         separator = body[cursor : match.start()]
         if index == 0:
-            if separator.strip().lower() not in {"", "both"}:
+            if separator.strip().lower() not in {
+                "",
+                "both",
+                "this case is rated high risk due to",
+                "this case is rated medium risk due to",
+                "this case is rated low risk due to",
+            }:
                 return None
         elif re.fullmatch(
             r"\s*(?:,\s*(?:(?:and|while)\s+)?|(?:and|while)\s+)",
@@ -166,12 +189,17 @@ def _parse_narrative_clauses(
         ) is None:
             return None
         phrase = re.sub(r"\s+", " ", match.group("direction").lower())
-        rows.append(
-            (
-                canonical_features[match.group("feature").lower()],
-                phrase_to_direction[phrase],
+        for raw_feature in re.split(
+            r"\s*(?:,\s*(?:and\s+)?|\s+and\s+)\s*",
+            match.group("features"),
+            flags=re.I,
+        ):
+            rows.append(
+                (
+                    canonical_features[raw_feature.lower()],
+                    phrase_to_direction[phrase],
+                )
             )
-        )
         cursor = match.end()
     if body[cursor:].strip():
         return None
@@ -230,7 +258,7 @@ def _grounding_ok(text: str, record: dict, known_features: list[str]) -> bool:
         return False
     stated_levels = {
         found.group("level").lower()
-        for found in RISK_LEVEL_RE.finditer(first_sentence)
+        for found in RISK_LEVEL_RE.finditer(match.group("narrative"))
     }
     return stated_levels == {str(record["risk_bucket"]).lower()}
 

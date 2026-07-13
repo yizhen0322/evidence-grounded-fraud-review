@@ -204,6 +204,10 @@ def faithful_for(record: dict) -> list[tuple[str, str]]:
         [
             ("direction_articles", f"{article_narrative}\nEVIDENCE:\n{evidence}"),
             ("raises_lowers", f"{synonym_narrative}\nEVIDENCE:\n{evidence}"),
+            (
+                "safe_also_modifier",
+                f"{narrative.replace(' increases risk', ' also increases risk', 1).replace(' decreases risk', ' also decreases risk', 1)}\nEVIDENCE:\n{evidence}",
+            ),
         ]
     )
     if len(codes) > 1:
@@ -212,6 +216,49 @@ def faithful_for(record: dict) -> list[tuple[str, str]]:
             for code in reversed(codes)
         ]
         items.append(("narrative_reorder", _narrative_with_clauses(record, clauses)))
+        if len({code["direction"] for code in codes}) == 1:
+            direction = codes[0]["direction"]
+            plural = DIRWORD[direction].replace("increases", "increase").replace(
+                "decreases", "decrease"
+            )
+            grouped = (
+                f"NARRATIVE: This case is rated {record['risk_bucket']} risk. "
+                + " and ".join(code["feature"] for code in codes)
+                + f" {plural}.\nEVIDENCE:\n"
+                + "\n".join(
+                    f"- {code['feature']} - {DIRWORD[code['direction']]}"
+                    for code in codes
+                )
+                + "\nACTION: Recommended for manual review."
+            )
+            items.append(("grouped_same_direction", grouped))
+            oxford = (
+                f"NARRATIVE: This case is rated {record['risk_bucket']} risk. "
+                + ", ".join(code["feature"] for code in codes[:-1])
+                + (", and " if len(codes) > 2 else " and ")
+                + codes[-1]["feature"]
+                + f" {plural}.\nEVIDENCE:\n"
+                + "\n".join(
+                    f"- {code['feature']} - {DIRWORD[code['direction']]}"
+                    for code in codes
+                )
+                + "\nACTION: Recommended for manual review."
+            )
+            items.append(("oxford_grouped_direction", oxford))
+            gerund = "increasing risk" if direction == "increases_risk" else "decreasing risk"
+            due_to = (
+                f"NARRATIVE: This case is rated {record['risk_bucket']} risk. "
+                f"This case is rated {record['risk_bucket']} risk due to "
+                + ", ".join(f"{code['feature']} {gerund}" for code in codes[:-1])
+                + (", and " if len(codes) > 1 else "")
+                + f"{codes[-1]['feature']} {gerund}.\nEVIDENCE:\n"
+                + "\n".join(
+                    f"- {code['feature']} - {DIRWORD[code['direction']]}"
+                    for code in codes
+                )
+                + "\nACTION: Recommended for manual review."
+            )
+            items.append(("due_to_gerund", due_to))
     return items
 
 

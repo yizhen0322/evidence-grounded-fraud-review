@@ -15,7 +15,11 @@ if __package__ in {None, ""}:
 from src.evaluation.stats import wilson_ci
 from src.narratives.evidence import serialize_evidence
 from src.narratives.guardrails import fallback_text, validate_narrative
-from src.narratives.llm_client import LLMUnavailable, PROMPT_TEMPLATES, generate_narrative
+from src.narratives.llm_client import (
+    LLMUnavailable,
+    PROMPT_TEMPLATES,
+    generate_narrative_response,
+)
 from src.provenance import (
     assert_clean_repository,
     sha256_file,
@@ -213,16 +217,19 @@ def run_g5(
         for arm in selected_arms:
             started = time.perf_counter()
             try:
-                raw = generate_narrative(
+                generation = generate_narrative_response(
                     evidence,
                     model=model,
                     timeout=timeout,
                     prompt_style=arm,
                 )
-                result = validate_narrative(raw, record, known_features)
+                raw = generation.raw_response
+                candidate = generation.text
+                result = validate_narrative(candidate, record, known_features)
             except LLMUnavailable:
                 unavailable += 1
                 raw = None
+                candidate = None
                 result = None
             latency = time.perf_counter() - started
             failed_checks = (
@@ -235,6 +242,7 @@ def run_g5(
                 "arm": arm,
                 "evidence": evidence,
                 "raw_output": raw,
+                "candidate_text": candidate,
                 "checks": result.checks if result is not None else None,
                 "fallback": result.fallback if result is not None else True,
                 "fallback_reason": (
@@ -263,8 +271,9 @@ def run_g5(
         "model": model,
         "llm_unavailable_count": unavailable,
         "paired_design": (
-            "Each raw output is evaluated OFF policy and the same output is then "
-            "subjected to ON-policy validate-or-fallback delivery."
+            "Each structured model response is deterministically rendered once, "
+            "evaluated OFF policy, and the same rendered output is then subjected "
+            "to ON-policy validate-or-fallback delivery."
         ),
         "calibration": {
             "path": str(DEFAULT_CALIBRATION),
@@ -292,6 +301,7 @@ def run_g5(
         source_files=[
             "corpus/guardrail_corpus_v1.jsonl",
             "experiments/calibration/validator_calibration_v1.json",
+            "experiments/DECISIONS.md",
             "src/evaluation/stats.py",
             "src/narratives/evidence.py",
             "src/narratives/guardrails.py",

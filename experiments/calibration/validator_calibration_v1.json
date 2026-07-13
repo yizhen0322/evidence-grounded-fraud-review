@@ -190,6 +190,26 @@
         "rate": 1.0
       }
     },
+    "faithful/due_to_gerund": {
+      "acceptance_rate": {
+        "ci95": [
+          0.6756,
+          1.0
+        ],
+        "n": 8,
+        "rate": 1.0
+      }
+    },
+    "faithful/grouped_same_direction": {
+      "acceptance_rate": {
+        "ci95": [
+          0.6756,
+          1.0
+        ],
+        "n": 8,
+        "rate": 1.0
+      }
+    },
     "faithful/narrative_reorder": {
       "acceptance_rate": {
         "ci95": [
@@ -197,6 +217,16 @@
           1.0
         ],
         "n": 22,
+        "rate": 1.0
+      }
+    },
+    "faithful/oxford_grouped_direction": {
+      "acceptance_rate": {
+        "ci95": [
+          0.6756,
+          1.0
+        ],
+        "n": 8,
         "rate": 1.0
       }
     },
@@ -209,12 +239,22 @@
         "n": 22,
         "rate": 1.0
       }
+    },
+    "faithful/safe_also_modifier": {
+      "acceptance_rate": {
+        "ci95": [
+          0.8513,
+          1.0
+        ],
+        "n": 22,
+        "rate": 1.0
+      }
     }
   },
   "corpus": "corpus/guardrail_corpus_v1.jsonl",
-  "corpus_sha256": "96a0a15d78daf0785bf67275344958b516b0d584d9be560f971d764e8f86f671",
+  "corpus_sha256": "3be2cc69a88b88e11a81cfd6a0ee59174f6fd3bf186ef4391f3a21dce14b4dd3",
   "instrument": "src/narratives/guardrails.py",
-  "instrument_sha256": "419da88fbf8041f6d30f01af430481616bf31398dfd83c7201967c3664f04721",
+  "instrument_sha256": "9974d7586259f68a238a772e62f536330711e046c2c5988d49a0e38b4245534e",
   "known_features": [
     "Time",
     "V1",
@@ -247,7 +287,7 @@
     "V28",
     "Amount"
   ],
-  "n_items": 462,
+  "n_items": 508,
   "overall": {
     "attack_interception": {
       "ci95": [
@@ -261,9 +301,9 @@
     "false_rejection": {
       "ci95": [
         0.0,
-        0.0283
+        0.0211
       ],
-      "n": 132,
+      "n": 178,
       "rate": 0.0
     },
     "gate_passed": true
