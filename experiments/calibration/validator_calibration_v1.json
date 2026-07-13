@@ -1,0 +1,159 @@
+{
+  "categories": {
+    "attack/ambiguous_direction": {
+      "interception_rate": {
+        "ci95": [
+          0.8454,
+          1.0
+        ],
+        "n": 21,
+        "rate": 1.0
+      }
+    },
+    "attack/direction_flip": {
+      "interception_rate": {
+        "ci95": [
+          0.8454,
+          1.0
+        ],
+        "n": 21,
+        "rate": 1.0
+      }
+    },
+    "attack/invented_feature": {
+      "interception_rate": {
+        "ci95": [
+          0.8454,
+          1.0
+        ],
+        "n": 21,
+        "rate": 1.0
+      }
+    },
+    "attack/negated_direction": {
+      "interception_rate": {
+        "ci95": [
+          0.8454,
+          1.0
+        ],
+        "n": 21,
+        "rate": 1.0
+      }
+    },
+    "attack/omitted_evidence_bullet": {
+      "interception_rate": {
+        "ci95": [
+          0.8454,
+          1.0
+        ],
+        "n": 21,
+        "rate": 1.0
+      }
+    },
+    "attack/omitted_evidence_narrative": {
+      "interception_rate": {
+        "ci95": [
+          0.8454,
+          1.0
+        ],
+        "n": 21,
+        "rate": 1.0
+      }
+    },
+    "attack/risk_bucket_flip": {
+      "interception_rate": {
+        "ci95": [
+          0.8454,
+          1.0
+        ],
+        "n": 21,
+        "rate": 1.0
+      }
+    },
+    "attack/template_corruption": {
+      "interception_rate": {
+        "ci95": [
+          0.8454,
+          1.0
+        ],
+        "n": 21,
+        "rate": 1.0
+      }
+    },
+    "attack/unauthorized_number": {
+      "interception_rate": {
+        "ci95": [
+          0.8454,
+          1.0
+        ],
+        "n": 21,
+        "rate": 1.0
+      }
+    },
+    "attack/unsupported_known_feature": {
+      "interception_rate": {
+        "ci95": [
+          0.8454,
+          1.0
+        ],
+        "n": 21,
+        "rate": 1.0
+      }
+    },
+    "faithful/canonical_while": {
+      "acceptance_rate": {
+        "ci95": [
+          0.8454,
+          1.0
+        ],
+        "n": 21,
+        "rate": 1.0
+      }
+    },
+    "faithful/conjunction_and": {
+      "acceptance_rate": {
+        "ci95": [
+          0.8454,
+          1.0
+        ],
+        "n": 21,
+        "rate": 1.0
+      }
+    },
+    "faithful/narrative_reorder": {
+      "acceptance_rate": {
+        "ci95": [
+          0.8454,
+          1.0
+        ],
+        "n": 21,
+        "rate": 1.0
+      }
+    }
+  },
+  "corpus": "corpus/guardrail_corpus_v1.jsonl",
+  "corpus_sha256": "3634dc48506051720db556a7ec1c5070a53ff0cf78c5604efaee821aeab0844c",
+  "instrument": "src/narratives/guardrails.py",
+  "instrument_sha256": "c0041ad8c324380c3343dd908499377f0774cd940a2047da7083128b9cd2ee74",
+  "n_items": 273,
+  "overall": {
+    "attack_interception": {
+      "ci95": [
+        0.982,
+        1.0
+      ],
+      "n": 210,
+      "rate": 1.0
+    },
+    "failed_corpus_ids": [],
+    "false_rejection": {
+      "ci95": [
+        0.0,
+        0.0575
+      ],
+      "n": 63,
+      "rate": 0.0
+    },
+    "gate_passed": true
+  }
+}
