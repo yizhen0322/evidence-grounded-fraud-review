@@ -23,7 +23,7 @@ from src.data.split import split_summary, stratified_split
 from src.evaluation.metrics import evaluate
 from src.evaluation.threshold import select_threshold_max_f1
 from src.models.xgb import fraud_scores, train_xgboost
-from src.provenance import write_run_manifest
+from src.provenance import assert_clean_repository, write_run_manifest
 
 
 def _validate_config(config: dict) -> None:
@@ -112,9 +112,12 @@ def run(
     data_path,
     out_root="experiments/runs",
     validate_data=True,
+    require_clean=True,
 ) -> Path:
     """Execute one experiment and return its immutable run directory."""
     _validate_config(config)
+    if require_clean:
+        assert_clean_repository()
     seed = int(config.get("seed", 42))
     stamp = datetime.date.today().isoformat()
     run_dir = Path(out_root) / f"{stamp}_{config['group']}_seed{seed}"
@@ -215,6 +218,18 @@ def run(
     (run_dir / "split_summary.json").write_text(
         json.dumps(summary, indent=2)
     )
+    pd.concat(
+        [
+            pd.DataFrame(
+                {
+                    CASE_ID: getattr(splits, name)[CASE_ID].to_numpy(),
+                    "split": name,
+                }
+            )
+            for name in ("train", "val", "test")
+        ],
+        ignore_index=True,
+    ).to_parquet(run_dir / "split_assignments.parquet")
     (run_dir / "metrics.json").write_text(json.dumps(metrics, indent=2))
     freeze = subprocess.run(
         ["uv", "pip", "list", "--format", "freeze"],
@@ -252,7 +267,7 @@ def run(
         feature_names=feature_names,
         source_run_dirs=[],
         source_files=source_files,
-        require_clean=validate_data,
+        require_clean=require_clean,
     )
     return run_dir
 

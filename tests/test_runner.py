@@ -36,6 +36,7 @@ def test_runner_end_to_end_baseline(tmp_path):
         data_path=make_synthetic_csv(tmp_path),
         out_root=tmp_path / "runs",
         validate_data=False,
+        require_clean=False,
     )
 
     metrics = json.loads((run_dir / "metrics.json").read_text())
@@ -50,6 +51,9 @@ def test_runner_end_to_end_baseline(tmp_path):
         predictions
     )
     assert manifest["threshold"] == metrics["val"]["threshold"]
+    assignments = pd.read_parquet(run_dir / "split_assignments.parquet")
+    assert assignments[CASE_ID].is_unique
+    assert set(assignments["split"]) == {"train", "val", "test"}
     assert (run_dir / "split_summary.json").exists()
     assert (run_dir / "model" / "xgb.json").exists()
 
@@ -69,6 +73,7 @@ def test_runner_smote_changes_only_train(tmp_path):
         data_path=make_synthetic_csv(tmp_path),
         out_root=tmp_path / "runs",
         validate_data=False,
+        require_clean=False,
     )
 
     summary = json.loads((run_dir / "split_summary.json").read_text())
@@ -90,4 +95,32 @@ def test_runner_rejects_unknown_pipeline_modes(tmp_path):
             data_path=make_synthetic_csv(tmp_path),
             out_root=tmp_path / "runs",
             validate_data=False,
+            require_clean=False,
+        )
+
+
+def test_clean_run_requirement_is_independent_of_data_validation(
+    tmp_path,
+    monkeypatch,
+):
+    config = {
+        "group": "g0",
+        "features": "original",
+        "imbalance": "none",
+    }
+
+    def reject_dirty_repo():
+        raise ValueError("committed clean Git worktree")
+
+    monkeypatch.setattr(
+        "src.run_experiment.assert_clean_repository",
+        reject_dirty_repo,
+    )
+    with pytest.raises(ValueError, match="committed clean Git worktree"):
+        run(
+            config,
+            data_path=make_synthetic_csv(tmp_path),
+            out_root=tmp_path / "runs",
+            validate_data=False,
+            require_clean=True,
         )

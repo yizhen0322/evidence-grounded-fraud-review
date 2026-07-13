@@ -60,6 +60,28 @@ def _validate_predictions(run_dir: Path) -> None:
         raise ValueError("predictions case_id must be non-null and unique")
 
 
+def _split_assignment_hash(path: Path) -> str:
+    assignments = pd.read_parquet(path)
+    if list(assignments.columns) != [CASE_ID, "split"]:
+        raise ValueError("split assignments must contain exactly case_id and split")
+    if assignments[CASE_ID].isna().any() or not assignments[CASE_ID].is_unique:
+        raise ValueError("split assignment case_id must be non-null and unique")
+    allowed = {"train", "val", "test"}
+    if not set(assignments["split"]).issubset(allowed):
+        raise ValueError("split assignments contain an unknown split label")
+    identity = {
+        name: sorted(
+            int(case_id)
+            for case_id in assignments.loc[
+                assignments["split"] == name,
+                CASE_ID,
+            ]
+        )
+        for name in ("train", "val", "test")
+    }
+    return sha256_json(identity)
+
+
 def _artifact_catalog(run_dir: Path) -> dict[str, dict[str, Any]]:
     artifacts: dict[str, dict[str, Any]] = {}
     for path in sorted(candidate for candidate in run_dir.rglob("*") if candidate.is_file()):
@@ -96,21 +118,44 @@ def _git_state(repo_root: Path) -> tuple[str, bool]:
     return commit, bool(status)
 
 
-def _validate_root_contract(run_dir: Path, manifest: dict[str, Any]) -> None:
-    if manifest["source_runs"]:
-        return
+def assert_clean_repository(repo_root: str | Path = ".") -> None:
+    """Reject final-run creation from an uncommitted tracked worktree."""
+    commit, dirty = _git_state(Path(repo_root))
+    if dirty or commit == "UNBORN":
+        raise ValueError("reported final runs require a committed clean Git worktree")
 
+
+def _validate_content_contract(run_dir: Path, manifest: dict[str, Any]) -> None:
     config_path = run_dir / "config.yaml"
     split_path = run_dir / "split_summary.json"
+    assignments_path = run_dir / "split_assignments.parquet"
     metrics_path = run_dir / "metrics.json"
-    if config_path.exists():
+    if not manifest["source_runs"] and config_path.exists():
         resolved_config = yaml.safe_load(config_path.read_text())
         if sha256_json(resolved_config) != manifest["config_sha256"]:
             raise ValueError("config hash mismatch")
-    if split_path.exists():
+    if not manifest["source_runs"] and split_path.exists():
         split_summary = json.loads(split_path.read_text())
-        if sha256_json(split_summary) != manifest["split_sha256"]:
-            raise ValueError("split hash mismatch")
+        if assignments_path.exists():
+            assignments = pd.read_parquet(assignments_path)
+            for name in ("train", "val", "test"):
+                if name in split_summary:
+                    actual = int((assignments["split"] == name).sum())
+                    if actual != split_summary[name]["n"]:
+                        raise ValueError(f"split assignment count mismatch: {name}")
+        if not assignments_path.exists():
+            raise ValueError("root run missing split_assignments.parquet")
+        if _split_assignment_hash(assignments_path) != manifest["split_sha256"]:
+            raise ValueError("split assignment hash mismatch")
+        predictions_path = run_dir / "predictions.parquet"
+        if predictions_path.exists():
+            predictions = pd.read_parquet(predictions_path)
+            assignments = pd.read_parquet(assignments_path)
+            expected_test_ids = set(
+                assignments.loc[assignments["split"] == "test", CASE_ID]
+            )
+            if set(predictions[CASE_ID]) != expected_test_ids:
+                raise ValueError("prediction case_ids differ from frozen test split")
     if metrics_path.exists():
         metrics = json.loads(metrics_path.read_text())
         if "val" in metrics and metrics["val"].get("threshold") != manifest["threshold"]:
@@ -181,7 +226,7 @@ def validate_run_manifest(
         if "rows" in recorded and _row_count(path) != recorded["rows"]:
             raise ValueError(f"artifact row-count mismatch: {relative}")
 
-    _validate_root_contract(run_dir, manifest)
+    _validate_content_contract(run_dir, manifest)
     return manifest
 
 
@@ -251,20 +296,33 @@ def write_run_manifest(
             )
         dataset_hash = sha256_file(dataset_path)
         config_hash = sha256_json(resolved_config)
-        split_hash = sha256_json(split_summary)
+        assignments_path = run_dir / "split_assignments.parquet"
+        if not assignments_path.exists():
+            raise ValueError("root runs require split_assignments.parquet")
+        split_hash = _split_assignment_hash(assignments_path)
 
     if threshold is None or not feature_names:
         raise ValueError("threshold and feature_names are required or must be inherited")
 
     _validate_predictions(run_dir)
     commit, dirty = _git_state(root)
-    if require_clean and (dirty or commit == "UNBORN"):
-        raise ValueError("reported final runs require a committed clean Git worktree")
+    if require_clean:
+        assert_clean_repository(root)
 
     source_hashes = {
         relative: sha256_file(root / relative)
         for relative in sorted(source_files)
     }
+    if require_clean:
+        for relative in source_hashes:
+            tracked = subprocess.run(
+                ["git", "ls-files", "--error-unmatch", relative],
+                cwd=root,
+                capture_output=True,
+                text=True,
+            )
+            if tracked.returncode != 0:
+                raise ValueError(f"final-run source file is not tracked: {relative}")
     manifest = {
         "schema_version": SCHEMA_VERSION,
         "run_id": run_dir.name,

@@ -7,6 +7,7 @@ from src.data.load import CASE_ID
 from src.provenance import (
     assert_source_hashes,
     assert_source_run,
+    sha256_file,
     sha256_json,
     source_run_ref,
     validate_run_manifest,
@@ -33,6 +34,9 @@ def make_run(tmp_path, name="detector", source_run_dirs=()):
     (run_dir / "split_summary.json").write_text(
         json.dumps({"test": {"n": 2}})
     )
+    pd.DataFrame(
+        {CASE_ID: [101, 102], "split": ["test", "test"]}
+    ).to_parquet(run_dir / "split_assignments.parquet")
     write_run_manifest(
         run_dir=run_dir,
         group="g0" if not source_run_dirs else "g4",
@@ -102,3 +106,40 @@ def test_manifest_rejects_config_contract_drift(tmp_path):
 
     with pytest.raises(ValueError, match="config hash mismatch"):
         validate_run_manifest(run_dir)
+
+
+def test_split_hash_binds_case_assignments_not_summary_fields(tmp_path):
+    first = make_run(tmp_path, "first")
+    second = make_run(tmp_path, "second")
+    first_manifest = validate_run_manifest(first)
+    second_manifest = validate_run_manifest(second)
+
+    assert first_manifest["split_sha256"] == second_manifest["split_sha256"]
+
+    second_assignments = pd.read_parquet(second / "split_assignments.parquet")
+    second_assignments.loc[0, "split"] = "train"
+    second_assignments.to_parquet(second / "split_assignments.parquet")
+    with pytest.raises(ValueError, match="hash mismatch|count mismatch"):
+        validate_run_manifest(second)
+
+
+def test_derived_run_binds_its_own_metrics_contract(tmp_path):
+    detector = make_run(tmp_path)
+    child = make_run(tmp_path, "g4", [detector])
+    metrics_path = child / "metrics.json"
+    metrics_path.write_text(
+        json.dumps(
+            {
+                "val": {"threshold": 0.9},
+                "test": {"threshold": 0.9},
+                "feature_names": ["V1", "Amount"],
+            }
+        )
+    )
+    manifest_path = child / "run_manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    manifest["artifacts"]["metrics.json"]["sha256"] = sha256_file(metrics_path)
+    manifest_path.write_text(json.dumps(manifest))
+
+    with pytest.raises(ValueError, match="threshold differs"):
+        validate_run_manifest(child)
