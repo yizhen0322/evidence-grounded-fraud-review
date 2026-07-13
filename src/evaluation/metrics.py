@@ -17,11 +17,12 @@ from sklearn.metrics import (
 def _top_k_indices(scores, k: int) -> np.ndarray:
     if k <= 0:
         raise ValueError("k must be positive")
-    return np.argsort(np.asarray(scores))[::-1][:k]
+    # Preserve input order when scores tie so repeated runs select the same rows.
+    return np.argsort(-np.asarray(scores), kind="stable")[:k]
 
 
 def precision_at_k(y_true, scores, k: int = 100) -> float:
-    """Return the fraud prevalence among the k highest-scored cases."""
+    """Return precision among the available top ``min(k, n)`` cases."""
     y = np.asarray(y_true)
     indices = _top_k_indices(scores, k)
     if indices.size == 0:

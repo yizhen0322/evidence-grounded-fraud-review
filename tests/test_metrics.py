@@ -20,6 +20,14 @@ def test_top_k_handles_k_larger_than_dataset():
     assert recall_at_k(y, scores, k=100) == 1.0
 
 
+def test_top_k_breaks_ties_by_stable_input_order():
+    y = np.array([1, 0, 0, 1])
+    scores = np.array([0.8, 0.8, 0.8, 0.2])
+
+    assert precision_at_k(y, scores, k=2) == 0.5
+    assert recall_at_k(y, scores, k=2) == 0.5
+
+
 def test_recall_at_k_is_zero_when_there_are_no_positives():
     assert recall_at_k([0, 0], [0.9, 0.1], k=1) == 0.0
 
@@ -55,3 +63,22 @@ def test_evaluate_applies_the_supplied_threshold():
     assert metrics["threshold"] == 0.5
     assert metrics["tp"] == 1
     assert metrics["fn"] == 1
+
+
+def test_evaluate_output_keys_are_stable():
+    metrics = evaluate([0, 1], [0.1, 0.9], threshold=0.5)
+
+    assert set(metrics) == {
+        "auc_pr",
+        "roc_auc",
+        "threshold",
+        "precision",
+        "recall",
+        "f1",
+        "tn",
+        "fp",
+        "fn",
+        "tp",
+        "precision_at_100",
+        "recall_at_100",
+    }

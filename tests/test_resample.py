@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 
+import src.data.resample as resample
 from src.data.resample import smote_train
 
 
@@ -39,3 +40,7 @@ def test_smote_does_not_mutate_inputs():
 
     pd.testing.assert_frame_equal(X, original_X)
     pd.testing.assert_series_equal(y, original_y)
+
+
+def test_resampling_public_api_is_train_only():
+    assert resample.__all__ == ["smote_train"]

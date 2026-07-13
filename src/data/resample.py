@@ -3,6 +3,8 @@
 import pandas as pd
 from imblearn.over_sampling import SMOTE
 
+__all__ = ["smote_train"]
+
 
 def smote_train(
     X_train: pd.DataFrame,
