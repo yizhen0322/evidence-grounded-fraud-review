@@ -1,0 +1,93 @@
+import json
+
+import numpy as np
+import pandas as pd
+import pytest
+
+from src.data.load import CASE_ID, FEATURES, TARGET
+from src.provenance import validate_run_manifest
+from src.run_experiment import run
+
+
+def make_synthetic_csv(tmp_path, n=3000, fraud_rate=0.05, seed=0):
+    rng = np.random.default_rng(seed)
+    labels = (rng.random(n) < fraud_rate).astype(int)
+    features = rng.normal(size=(n, 30))
+    features[:, 5] += labels * 3.0
+    dataframe = pd.DataFrame(features, columns=FEATURES)
+    dataframe[TARGET] = labels
+    path = tmp_path / "synth.csv"
+    dataframe.to_csv(path, index=False)
+    return path
+
+
+def test_runner_end_to_end_baseline(tmp_path):
+    config = {
+        "group": "g0",
+        "features": "original",
+        "imbalance": "none",
+        "dedup": True,
+        "seed": 42,
+        "xgb_params": {"n_estimators": 30},
+    }
+
+    run_dir = run(
+        config,
+        data_path=make_synthetic_csv(tmp_path),
+        out_root=tmp_path / "runs",
+        validate_data=False,
+    )
+
+    metrics = json.loads((run_dir / "metrics.json").read_text())
+    assert set(metrics) >= {"val", "test", "runtime"}
+    assert 0.0 <= metrics["test"]["auc_pr"] <= 1.0
+    predictions = pd.read_parquet(run_dir / "predictions.parquet")
+    assert list(predictions.columns) == [CASE_ID, "y_true", "score", "pred"]
+    assert predictions[CASE_ID].is_unique
+    manifest = validate_run_manifest(run_dir, expected_group="g0")
+    assert manifest["schema_version"] == 1
+    assert manifest["artifacts"]["predictions.parquet"]["rows"] == len(
+        predictions
+    )
+    assert manifest["threshold"] == metrics["val"]["threshold"]
+    assert (run_dir / "split_summary.json").exists()
+    assert (run_dir / "model" / "xgb.json").exists()
+
+
+def test_runner_smote_changes_only_train(tmp_path):
+    config = {
+        "group": "g1",
+        "features": "original",
+        "imbalance": "smote",
+        "dedup": True,
+        "seed": 42,
+        "xgb_params": {"n_estimators": 30},
+    }
+
+    run_dir = run(
+        config,
+        data_path=make_synthetic_csv(tmp_path),
+        out_root=tmp_path / "runs",
+        validate_data=False,
+    )
+
+    summary = json.loads((run_dir / "split_summary.json").read_text())
+    assert summary["val"]["fraud_ratio"] < 0.10
+    assert summary["test"]["fraud_ratio"] < 0.10
+    assert summary["train_after_resample"]["fraud_ratio"] == 0.5
+
+
+def test_runner_rejects_unknown_pipeline_modes(tmp_path):
+    config = {
+        "group": "bad",
+        "features": "original",
+        "imbalance": "test_smote",
+    }
+
+    with pytest.raises(ValueError, match="unsupported imbalance mode"):
+        run(
+            config,
+            data_path=make_synthetic_csv(tmp_path),
+            out_root=tmp_path / "runs",
+            validate_data=False,
+        )
