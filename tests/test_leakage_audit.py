@@ -1,4 +1,6 @@
 import json
+import subprocess
+import sys
 
 import pandas as pd
 import pytest
@@ -94,3 +96,17 @@ def test_tampered_artifact_makes_cli_fail(tmp_path):
     (run_dir / "metrics.json").write_text("tampered")
 
     assert main(str(run_dir)) == 1
+
+
+def test_direct_script_cli_can_import_project_modules(tmp_path):
+    run_dir = make_valid_run(tmp_path)
+
+    completed = subprocess.run(
+        [sys.executable, "tools/leakage_audit.py", str(run_dir)],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert completed.returncode == 0, completed.stderr
+    assert "PASS: manifest hashes, split IDs, and row counts validate" in completed.stdout

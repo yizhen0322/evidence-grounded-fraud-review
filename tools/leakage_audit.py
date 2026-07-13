@@ -6,6 +6,9 @@ from pathlib import Path
 
 import pandas as pd
 
+if __package__ in {None, ""}:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 from src.data.load import CASE_ID
 from src.provenance import validate_run_manifest
 
