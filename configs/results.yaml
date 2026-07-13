@@ -1,0 +1,32 @@
+schema_version: 1
+runs:
+  - {group: g0, seed: 42, path: experiments/runs/2026-07-14_g0_seed42}
+  - {group: g0, seed: 43, path: experiments/runs/2026-07-14_g0_seed43}
+  - {group: g0, seed: 44, path: experiments/runs/2026-07-14_g0_seed44}
+  - {group: g0, seed: 45, path: experiments/runs/2026-07-14_g0_seed45}
+  - {group: g0, seed: 46, path: experiments/runs/2026-07-14_g0_seed46}
+  - {group: g1, seed: 42, path: experiments/runs/2026-07-14_g1_seed42}
+  - {group: g1, seed: 43, path: experiments/runs/2026-07-14_g1_seed43}
+  - {group: g1, seed: 44, path: experiments/runs/2026-07-14_g1_seed44}
+  - {group: g1, seed: 45, path: experiments/runs/2026-07-14_g1_seed45}
+  - {group: g1, seed: 46, path: experiments/runs/2026-07-14_g1_seed46}
+  - {group: g2, seed: 42, path: experiments/runs/2026-07-14_g2_seed42}
+  - {group: g2, seed: 43, path: experiments/runs/2026-07-14_g2_seed43}
+  - {group: g2, seed: 44, path: experiments/runs/2026-07-14_g2_seed44}
+  - {group: g2, seed: 45, path: experiments/runs/2026-07-14_g2_seed45}
+  - {group: g2, seed: 46, path: experiments/runs/2026-07-14_g2_seed46}
+  - {group: g3, seed: 42, path: experiments/runs/2026-07-14_g3_seed42}
+  - {group: g3, seed: 43, path: experiments/runs/2026-07-14_g3_seed43}
+  - {group: g3, seed: 44, path: experiments/runs/2026-07-14_g3_seed44}
+  - {group: g3, seed: 45, path: experiments/runs/2026-07-14_g3_seed45}
+  - {group: g3, seed: 46, path: experiments/runs/2026-07-14_g3_seed46}
+  - {group: g6, seed: 42, path: experiments/runs/2026-07-14_g6_seed42}
+  - {group: g6, seed: 43, path: experiments/runs/2026-07-14_g6_seed43}
+  - {group: g6, seed: 44, path: experiments/runs/2026-07-14_g6_seed44}
+  - {group: g6, seed: 45, path: experiments/runs/2026-07-14_g6_seed45}
+  - {group: g6, seed: 46, path: experiments/runs/2026-07-14_g6_seed46}
+  - {group: g7, seed: 42, path: experiments/runs/2026-07-14_g7_seed42}
+  - {group: g7, seed: 43, path: experiments/runs/2026-07-14_g7_seed43}
+  - {group: g7, seed: 44, path: experiments/runs/2026-07-14_g7_seed44}
+  - {group: g7, seed: 45, path: experiments/runs/2026-07-14_g7_seed45}
+  - {group: g7, seed: 46, path: experiments/runs/2026-07-14_g7_seed46}

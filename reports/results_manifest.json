@@ -1,0 +1,146 @@
+{
+  "config_path": "configs/results.yaml",
+  "config_sha256": "04a14cd7c425eb87e197df216f967c9f2de9c53f378f221f79bb50f4cd6e23ba",
+  "generated_at": "2026-07-13T20:15:50.362718+00:00",
+  "inputs": [
+    {
+      "manifest_sha256": "55791cb7c28dde81aeb64b6d6ada0405860710dee6c6135f73876974ef04bb86",
+      "run_id": "2026-07-14_g0_seed42"
+    },
+    {
+      "manifest_sha256": "f6628a7c123bb0dd28234f61f94e47893c7adbba0f7ca3bce968078edca4063b",
+      "run_id": "2026-07-14_g0_seed43"
+    },
+    {
+      "manifest_sha256": "8a39592f26ba746ffd944bb37bd8d32ac54fcdd6915ae9244be7bfe7a31f8de9",
+      "run_id": "2026-07-14_g0_seed44"
+    },
+    {
+      "manifest_sha256": "3f35608524954226895a7894d73a9159db31d8c49d63be9f30c2f82af9b779c0",
+      "run_id": "2026-07-14_g0_seed45"
+    },
+    {
+      "manifest_sha256": "7e50ea6ee04aa9ce52b685e1eff725cfc3ef5f1a36c3d2c5f69a1cc48f7c929c",
+      "run_id": "2026-07-14_g0_seed46"
+    },
+    {
+      "manifest_sha256": "70910a191e016aa31676a78c82718307419663a10686e1e695129ed896a3719f",
+      "run_id": "2026-07-14_g1_seed42"
+    },
+    {
+      "manifest_sha256": "2f975e21e2e18668145a751257c493d36f60b4774d8b7d5dedf9d73a37755b3d",
+      "run_id": "2026-07-14_g1_seed43"
+    },
+    {
+      "manifest_sha256": "93c63b3e80d2daa457a20c7699a55f9a4cdded8edea76204af48205607b65052",
+      "run_id": "2026-07-14_g1_seed44"
+    },
+    {
+      "manifest_sha256": "04c7c5899b1b46f2746be4870b3569156a2541129cad575a832155a81b5be825",
+      "run_id": "2026-07-14_g1_seed45"
+    },
+    {
+      "manifest_sha256": "ef19c6f27379bee03c9d757641dfc3f41a6116d67e5d82750b3ad16ca245f2e0",
+      "run_id": "2026-07-14_g1_seed46"
+    },
+    {
+      "manifest_sha256": "bea6690719733560a8a582b263293662505129434231ad0aa8c3aed9739799f2",
+      "run_id": "2026-07-14_g2_seed42"
+    },
+    {
+      "manifest_sha256": "b2bc5ba38d996560d6bbb215ce5be5ce3ddf998d160c271219ac3c611d2a008d",
+      "run_id": "2026-07-14_g2_seed43"
+    },
+    {
+      "manifest_sha256": "1cd2208c2ab31baaa68d3dbd1d02a82ab028b7ffa5589b253130340c9a4b028d",
+      "run_id": "2026-07-14_g2_seed44"
+    },
+    {
+      "manifest_sha256": "4f6501fa4e2f039a729368db6475bf44d07372c0571177cfde90275b3aab172a",
+      "run_id": "2026-07-14_g2_seed45"
+    },
+    {
+      "manifest_sha256": "4b1cc4303929ff5062d478dca6f2fa19348e214700a01153fd58e4294c6af8c0",
+      "run_id": "2026-07-14_g2_seed46"
+    },
+    {
+      "manifest_sha256": "d9919240a796c6621e1e3dad249ff7470d8ae7c0794a1a62c0de7055ae18465b",
+      "run_id": "2026-07-14_g3_seed42"
+    },
+    {
+      "manifest_sha256": "453eca84a266e636681585866f0e5a2a7a9dab612645872f0c8be52a9be7fb26",
+      "run_id": "2026-07-14_g3_seed43"
+    },
+    {
+      "manifest_sha256": "35f3a25892bb74c65a9ec208ab0b95dbabf85a5cb529d3e04ff56284e934a295",
+      "run_id": "2026-07-14_g3_seed44"
+    },
+    {
+      "manifest_sha256": "80f8ec0f9e34a92717a04b51ab0bffb6b28c6d2f0d7125a01d4dd764977e6432",
+      "run_id": "2026-07-14_g3_seed45"
+    },
+    {
+      "manifest_sha256": "1f8b4d6afaa62cdfcad22cd75f7b976ca57e2fb6a0044fd4320d33374657aa4b",
+      "run_id": "2026-07-14_g3_seed46"
+    },
+    {
+      "manifest_sha256": "c6f9d110014395fdc48aefaad6345f31d1147c9bd572926175170b49cc86dc4c",
+      "run_id": "2026-07-14_g6_seed42"
+    },
+    {
+      "manifest_sha256": "a81cc0834aec6142f6cf9bfbf3c57a8cba970cc60329655d49ea45d65ab8947a",
+      "run_id": "2026-07-14_g6_seed43"
+    },
+    {
+      "manifest_sha256": "4f13071b160c96ec4d15526ef59f60786e5bf5710a795f50c1edb8509404c767",
+      "run_id": "2026-07-14_g6_seed44"
+    },
+    {
+      "manifest_sha256": "0c2a20e90746b41f4a05fd6bff1d86f16e92103fec67d37dc23fe06a9fbbfdfd",
+      "run_id": "2026-07-14_g6_seed45"
+    },
+    {
+      "manifest_sha256": "59ed7bb6a4399ba87ccfe4997570c6634bce223ff112cc664c1560299f27c851",
+      "run_id": "2026-07-14_g6_seed46"
+    },
+    {
+      "manifest_sha256": "77e9adb6b80e8d4ad248b72002ff12bccf28be6cc042d363e7888402aca87010",
+      "run_id": "2026-07-14_g7_seed42"
+    },
+    {
+      "manifest_sha256": "d4ad00a64c0de34231ea3bcd43042d30d9a1dbe3cef265ceb9db018bcf5c5c37",
+      "run_id": "2026-07-14_g7_seed43"
+    },
+    {
+      "manifest_sha256": "38dc0a82dc7d7c684e2614c58d60633bcdbf84a4ae005e74cc585688b0815e4b",
+      "run_id": "2026-07-14_g7_seed44"
+    },
+    {
+      "manifest_sha256": "376c197e80078c9f61ef461f510f63d18f84171c1a0485ff2eeef55b76366d85",
+      "run_id": "2026-07-14_g7_seed45"
+    },
+    {
+      "manifest_sha256": "8efefea319a74de20c26dcbf06d4674ab60fe23cb01f820d534b25fd0b10a932",
+      "run_id": "2026-07-14_g7_seed46"
+    }
+  ],
+  "outputs": {
+    "reports/figures/pr_curves.png": {
+      "sha256": "5e05ef225b788286b20e2f661ba3414349c0f8d63058990cfee0b2ef944573a8"
+    },
+    "reports/tables/results_main.csv": {
+      "rows": 30,
+      "sha256": "8c8dfb0cb35abb8893fd4c1ceefce6508a930624e62251105462cf25bfd0472a"
+    },
+    "reports/tables/results_summary.csv": {
+      "rows": 6,
+      "sha256": "0aed1c388d2ccf59b35c5e041e9a3d64b49d18ab218aa2bc985179f219823cb0"
+    }
+  },
+  "schema_version": 1,
+  "source_code_sha256": {
+    "src/evaluation/metrics.py": "ed988981ba7403a3e4c9bc9b86e9d0380dac84717d5a1fa7dbd70db21a59f78d",
+    "src/provenance.py": "ed2eadd35fb65cce49ffb7efe9ad061e3788fe5e393c5461fd40f5cbfe0f7c4b",
+    "tools/make_results.py": "630759dac524e2d4a531ab5b6f5d35d8debdb4d71d141b6ea3ce91eb3aff013e"
+  }
+}
