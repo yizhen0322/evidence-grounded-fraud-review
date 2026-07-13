@@ -1,0 +1,10 @@
+data/raw/*.csv
+data/processed/
+artifacts/
+experiments/runs/
+__pycache__/
+.venv/
+*.pyc
+.DS_Store
+.ipynb_checkpoints/
+experiments/tuning_runs/

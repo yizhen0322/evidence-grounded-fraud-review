@@ -1,0 +1,30 @@
+[project]
+name = "fraud-detection-fyp"
+version = "0.1.0"
+description = "CP2: Hybrid AE-XGBoost fraud detection with local LLM explanations"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "numpy>=1.26",
+    "pandas>=2.2",
+    "scikit-learn>=1.5",
+    "imbalanced-learn>=0.12",
+    "xgboost>=2.1",
+    "tensorflow>=2.17,<2.20",
+    "shap>=0.46",
+    "pyyaml>=6.0",
+    "pyarrow>=17",
+    "matplotlib>=3.9",
+    "requests>=2.32",
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.34",
+]
+
+[dependency-groups]
+dev = ["pytest>=8.0", "httpx>=0.28"]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
