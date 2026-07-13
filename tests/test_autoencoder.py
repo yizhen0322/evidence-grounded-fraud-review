@@ -54,3 +54,35 @@ def test_autoencoder_internal_validation_contract_rejects_bad_fraction():
             np.zeros((10, 2), dtype="float32"),
             ae_val_frac=1.0,
         )
+
+
+def test_autoencoder_internal_validation_uses_only_supplied_training_rows():
+    class RecordingModel:
+        def __init__(self):
+            self.fit_call = None
+
+        def fit(self, X, y, **kwargs):
+            self.fit_call = (X.copy(), y.copy(), kwargs)
+
+    model = RecordingModel()
+    values = np.arange(40, dtype="float32").reshape(20, 2)
+
+    train_autoencoder(
+        model,
+        values,
+        epochs=1,
+        batch_size=4,
+        ae_val_frac=0.2,
+        seed=42,
+    )
+
+    X_train, y_train, kwargs = model.fit_call
+    X_val, y_val = kwargs["validation_data"]
+    assert len(X_train) == len(y_train) == 16
+    assert len(X_val) == len(y_val) == 4
+    supplied_rows = {tuple(row) for row in values}
+    training_rows = {tuple(row) for row in X_train}
+    validation_rows = {tuple(row) for row in X_val}
+    assert training_rows.issubset(supplied_rows)
+    assert validation_rows.issubset(supplied_rows)
+    assert training_rows.isdisjoint(validation_rows)

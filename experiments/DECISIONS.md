@@ -28,3 +28,10 @@ The validation AUC-PR values are used consistently for model selection but are
 not treated as unbiased generalization estimates because the same validation
 split also drives XGBoost early stopping. Final performance claims use the
 frozen detector's untouched test evaluation and multi-seed summaries.
+
+## Post-freeze reporting constraint
+
+Only G6 and G2 received the 20-trial search; the other reported groups retain
+their predeclared defaults. Cross-group differences therefore must not be
+attributed solely to architecture or imbalance handling. G6 was frozen because
+of its validation result, not because it was guaranteed to lead every test seed.

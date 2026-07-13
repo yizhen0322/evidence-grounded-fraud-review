@@ -6,7 +6,7 @@ import pytest
 
 from src.data.load import CASE_ID, FEATURES, TARGET
 from src.provenance import validate_run_manifest
-from src.run_experiment import run
+from src.run_experiment import _augment, run
 
 
 def make_synthetic_csv(tmp_path, n=3000, fraud_rate=0.05, seed=0):
@@ -181,3 +181,53 @@ def test_validation_only_run_does_not_score_or_write_test_predictions(tmp_path):
     assert metrics["runtime"]["test_inference_seconds"] is None
     assert not (run_dir / "predictions.parquet").exists()
     assert "predictions.parquet" not in manifest["artifacts"]
+
+
+def test_hybrid_ae_receives_only_legitimate_training_rows(tmp_path, monkeypatch):
+    captured = {}
+
+    class FakeAutoencoder:
+        def save(self, path):
+            path.write_text("fake model")
+
+    monkeypatch.setattr(
+        "src.models.autoencoder.build_autoencoder",
+        lambda **kwargs: FakeAutoencoder(),
+    )
+
+    def record_training_rows(model, values, **kwargs):
+        captured["values"] = values.copy()
+        return model
+
+    monkeypatch.setattr(
+        "src.models.autoencoder.train_autoencoder",
+        record_training_rows,
+    )
+    monkeypatch.setattr(
+        "src.models.autoencoder.reconstruction_error",
+        lambda model, values: np.zeros(len(values)),
+    )
+
+    def frame(marker, labels):
+        values = np.full((len(labels), len(FEATURES)), marker, dtype=float)
+        result = pd.DataFrame(values, columns=FEATURES)
+        result[TARGET] = labels
+        return result
+
+    scaled = {
+        "train": frame(1.0, [0, 1, 0, 1]),
+        "val": frame(99.0, [0, 0]),
+        "test": frame(101.0, [0, 1]),
+    }
+    run_dir = tmp_path / "run"
+    (run_dir / "model").mkdir(parents=True)
+
+    _augment(
+        {"features": "recon_error", "ae_params": {}},
+        scaled,
+        seed=42,
+        run_dir=run_dir,
+    )
+
+    assert captured["values"].shape == (2, len(FEATURES))
+    assert np.all(captured["values"] == 1.0)
