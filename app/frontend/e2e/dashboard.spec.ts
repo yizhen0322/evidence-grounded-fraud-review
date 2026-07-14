@@ -50,7 +50,6 @@ const caseRecord = {
   score: 0.94,
   pred: 1,
   detector_flagged: true,
-  y_true: 1,
   threshold: 0.42,
   top_reason: { feature: "V14", direction: "increases_risk", rank: 1, shap_value: 2.4 },
   reason_codes: [{ feature: "V14", direction: "increases_risk", rank: 1, shap_value: 2.4 }],
@@ -111,9 +110,22 @@ const results = {
 };
 
 async function installApiFixtures(page: Page, live: LiveFixture = "accepted") {
+  let workflow = {
+    case_id: 42009,
+    status: "unreviewed",
+    disposition: null as string | null,
+    note: "",
+    revision: 0,
+    created_at: null as string | null,
+    updated_at: null as string | null,
+    evidence_compatible: true,
+    activity_count: 0,
+  };
+  let workflowEvents: Array<Record<string, unknown>> = [];
   const captured = {
     liveBodies: [] as unknown[],
     guardrailBodies: [] as unknown[],
+    workflowBodies: [] as unknown[],
   };
 
   await page.route("**/api/v1/**", async (route) => {
@@ -126,6 +138,63 @@ async function installApiFixtures(page: Page, live: LiveFixture = "accepted") {
     }
     if (url.pathname.endsWith("/provenance")) return route.fulfill({ json: provenance });
     if (url.pathname.endsWith("/demo-scenarios")) return route.fulfill({ json: scenarios });
+    if (url.pathname.endsWith("/workflow/summary")) {
+      return route.fulfill({
+        json: {
+          total: 1,
+          counts: {
+            unreviewed: workflow.status === "unreviewed" ? 1 : 0,
+            in_review: workflow.status === "in_review" ? 1 : 0,
+            needs_follow_up: workflow.status === "needs_follow_up" ? 1 : 0,
+            review_complete: workflow.status === "review_complete" ? 1 : 0,
+          },
+          recorded_fallback: 0,
+          evidence_fingerprint: "f".repeat(64),
+        },
+      });
+    }
+    if (url.pathname.endsWith("/workflow/cases/42009/activity")) {
+      return route.fulfill({ json: { items: workflowEvents } });
+    }
+    if (url.pathname.endsWith("/workflow/cases/42009") && request.method() === "PUT") {
+      const body = request.postDataJSON() as {
+        revision: number;
+        status: string;
+        disposition: string | null;
+        note: string;
+      };
+      captured.workflowBodies.push(body);
+      if (body.revision !== workflow.revision) {
+        return route.fulfill({
+          status: 409,
+          json: { code: "workflow_revision_conflict", message: "stale revision", details: null },
+        });
+      }
+      const previous = workflow.status;
+      workflow = {
+        ...workflow,
+        status: body.status,
+        disposition: body.disposition,
+        note: body.note,
+        revision: workflow.revision + 1,
+        created_at: workflow.created_at ?? "2026-07-14T01:00:00+00:00",
+        updated_at: "2026-07-14T01:05:00+00:00",
+        activity_count: workflow.activity_count + 1,
+      };
+      workflowEvents = [{
+        id: workflow.revision,
+        event_type: body.status === "review_complete" ? "review_completed" : previous === "unreviewed" ? "review_started" : "review_updated",
+        from_status: previous,
+        to_status: body.status,
+        disposition: body.disposition,
+        note_changed: Boolean(body.note),
+        revision: workflow.revision,
+        created_at: workflow.updated_at,
+      }, ...workflowEvents];
+      return route.fulfill({ json: workflow });
+    }
+    if (url.pathname.endsWith("/workflow/cases/42009")) return route.fulfill({ json: workflow });
+    if (url.pathname.endsWith("/workflow/cases")) return route.fulfill({ json: { items: [workflow], total: 1 } });
     if (url.pathname.endsWith("/cases")) return route.fulfill({ json: { items: [caseRecord], total: 1 } });
     if (url.pathname.endsWith("/cases/42009")) return route.fulfill({ json: caseRecord });
     if (url.pathname.endsWith("/guardrails/demo")) {
@@ -203,10 +272,11 @@ test("recorded queue to investigation keeps all browser traffic loopback-only", 
   });
 
   await page.goto("/queue");
-  await expect(page.getByRole("heading", { name: "Flagged case queue" })).toBeVisible();
-  await page.getByRole("button", { name: /Open case/ }).click();
+  await expect(page.getByRole("heading", { name: "Work Queue" })).toBeVisible();
+  await expect(page.getByText("Evaluation-only ground truth")).toHaveCount(0);
+  await page.getByRole("button", { name: "Start review", exact: true }).click();
   await expect(page.getByRole("heading", { name: /Case 42009/ })).toBeVisible();
-  await expect(page.getByText("Evaluation-only ground truth")).toBeVisible();
+  await expect(page.getByText(/Historical ground truth/)).toHaveCount(0);
   await expect(page.getByText("Recorded strict-prompt arm · Reportable frozen output")).toBeVisible();
   expect(captured.liveBodies).toEqual([]);
   expect(nonLoopback).toEqual([]);
@@ -220,10 +290,10 @@ test("all three guardrail presets fail their intended check and activate fallbac
     { preset: "template_corruption", label: "Template corruption", check: "Format" },
   ];
 
-  await page.goto("/guardrails?case_id=42009");
+  await page.goto("/assurance/narratives?case_id=42009");
   for (const item of cases) {
     await page.getByText(item.label, { exact: true }).click();
-    await page.getByRole("button", { name: "Run validation" }).click();
+    await page.getByRole("button", { name: "Run assurance test" }).click();
     await expect(page.getByText("Rejected → fallback active")).toBeVisible();
     const badge = page.getByLabel("Guardrail checks").locator(".status-badge", { hasText: item.check });
     await expect(badge).toContainText("FAIL");
@@ -240,7 +310,7 @@ test("live replay success is explicitly demo-only and accepted", async ({ page }
   await expect(page.getByText("Live replay has not been generated")).toBeVisible();
   await page.getByRole("button", { name: "Generate live replay" }).click();
 
-  await expect(page.getByText("Accepted narrative")).toBeVisible();
+  await expect(page.getByText("Explanation verified")).toBeVisible();
   await expect(page.getByText("Live replay · Demo-only; not a reported G5 result")).toBeVisible();
   await expect(page.getByLabel("Guardrail checks").getByText("PASS", { exact: true })).toHaveCount(4);
   expect(captured.liveBodies).toEqual([{ case_id: 42009 }]);
@@ -268,9 +338,9 @@ test("case deep links survive a full browser refresh", async ({ page }) => {
   await expect(page.getByRole("heading", { name: /Case 42009/ })).toBeVisible();
 });
 
-test("results keep detector metrics separate from G4 and G5 narrative evidence", async ({ page }) => {
+test("monitor keeps detector metrics separate from G4 and G5 narrative evidence", async ({ page }) => {
   await installApiFixtures(page);
-  await page.goto("/results");
+  await page.goto("/assurance/performance");
 
   const detectorSection = page.getByRole("region", { name: "Detector performance" });
   const explanationSection = page.getByRole("region", { name: "Explanation & narrative evidence" });
@@ -291,11 +361,11 @@ test("primary routes are keyboard reachable", async ({ page }) => {
   await page.goto("/queue");
 
   await page.keyboard.press("Tab");
-  await expect(page.getByRole("link", { name: "Queue" })).toBeFocused();
+  await expect(page.getByRole("link", { name: /Work Queue/ })).toBeFocused();
   await page.keyboard.press("Tab");
-  await expect(page.getByRole("link", { name: "Guardrail Lab" })).toBeFocused();
+  await expect(page.getByRole("link", { name: /Narrative Assurance/ })).toBeFocused();
   await page.keyboard.press("Enter");
-  await expect(page.getByRole("heading", { name: "Guardrail Lab" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Narrative Assurance" })).toBeVisible();
 });
 
 test("the closed provenance drawer cannot capture keyboard focus", async ({ page }) => {
@@ -309,4 +379,40 @@ test("the closed provenance drawer cannot capture keyboard focus", async ({ page
   await expect(page.getByRole("heading", { name: "Provenance" })).toBeVisible();
   await drawer.getByRole("button", { name: "Close provenance drawer" }).click();
   await expect(drawer).toHaveAttribute("inert", "");
+});
+
+test("analyst can complete a review and recover it after refresh", async ({ page }) => {
+  const captured = await installApiFixtures(page);
+  await page.goto("/queue");
+  await page.getByRole("button", { name: "Start review", exact: true }).click();
+
+  await expect(page.getByText("In review").first()).toBeVisible();
+  await page.getByLabel("Provisional assessment").selectOption("suspicious");
+  await page.getByLabel("Analyst note").fill("Escalate based on the recorded evidence.");
+  await page.getByRole("button", { name: "Complete review" }).click();
+
+  await expect(page.getByText("Review complete").first()).toBeVisible();
+  await page.reload();
+  await expect(page.getByLabel("Analyst note")).toHaveValue("Escalate based on the recorded evidence.");
+  await expect(page.getByLabel("Provisional assessment")).toHaveValue("suspicious");
+  expect(captured.workflowBodies).toEqual([
+    { revision: 0, status: "in_review", disposition: null, note: "" },
+    {
+      revision: 1,
+      status: "review_complete",
+      disposition: "suspicious",
+      note: "Escalate based on the recorded evidence.",
+    },
+  ]);
+});
+
+test("legacy assurance links redirect to the product routes", async ({ page }) => {
+  await installApiFixtures(page);
+  await page.goto("/guardrails");
+  await expect(page).toHaveURL(/\/assurance\/narratives$/);
+  await expect(page.getByRole("heading", { name: "Narrative Assurance" })).toBeVisible();
+
+  await page.goto("/results");
+  await expect(page).toHaveURL(/\/assurance\/performance$/);
+  await expect(page.getByRole("heading", { name: "Model & Policy Monitor" })).toBeVisible();
 });

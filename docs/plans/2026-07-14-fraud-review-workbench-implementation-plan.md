@@ -59,7 +59,7 @@ Source of truth: `docs/specs/2026-07-14-fraud-review-workbench-spec.md`
 - Add fixed decision rail with status, disposition, notes, and activity.
 - Add Start, Save, Follow-up, Complete, Reopen, and Save & next actions.
 - Keep evidence and narrative read-only.
-- Put `y_true` in a collapsed research overlay only.
+- Exclude `y_true`, retrospective outcome text, and historical-label filtering from operational APIs and screens; retain only aggregate evaluation in Model Assurance.
 
 ## Phase 4 — Model Assurance
 
@@ -79,7 +79,7 @@ Source of truth: `docs/specs/2026-07-14-fraud-review-workbench-spec.md`
 
 ### Task 5.1 — Frontend tests
 
-- Update component tests for hidden ground truth and workflow actions.
+- Update API/component tests for absent operational ground truth and workflow actions.
 - Add E2E analyst journey, refresh persistence, old-link redirects, and recorded/live separation.
 
 ### Task 5.2 — Full verification

@@ -74,4 +74,4 @@ Colour is semantic. No gradients or decorative multi-colour surfaces.
 |---|---|---|
 | 2026-07-14 | Split immutable evidence from mutable local workflow metadata | Makes the prototype operational without contaminating experiment artifacts. |
 | 2026-07-14 | Operations and Model Assurance are separate navigation groups | Keeps analyst work primary while preserving the research contribution. |
-| 2026-07-14 | Historical ground truth is hidden from operational screens | Prevents hindsight leakage and makes the workflow credible. |
+| 2026-07-14 | Historical ground truth is excluded from operational APIs and screens | Prevents hindsight leakage and makes the workflow credible. Aggregate retrospective results remain in Model Assurance. |

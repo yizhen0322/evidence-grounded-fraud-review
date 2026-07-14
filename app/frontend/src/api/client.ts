@@ -8,6 +8,11 @@ import type {
   LiveNarrativeResponse,
   ProvenanceResponse,
   ResultsResponse,
+  WorkflowActivityResponse,
+  WorkflowListResponse,
+  WorkflowRecord,
+  WorkflowSummaryResponse,
+  WorkflowUpdate,
 } from "./types";
 
 const API_ROOT = "/api/v1";
@@ -58,7 +63,6 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export interface CaseFilters {
   risk_bucket?: string;
-  historical_label?: string;
   recorded_fallback?: string;
   offset?: number;
   limit?: number;
@@ -80,6 +84,17 @@ export const api = {
   cases: (filters: CaseFilters = {}) => request<CasesResponse | CaseDetail[]>(`/cases${queryString(filters)}`),
   case: (caseId: number | string) => request<CaseDetail>(`/cases/${encodeURIComponent(caseId)}`),
   results: () => request<ResultsResponse>("/results"),
+  workflowSummary: () => request<WorkflowSummaryResponse>("/workflow/summary"),
+  workflows: () => request<WorkflowListResponse>("/workflow/cases"),
+  workflow: (caseId: number | string) =>
+    request<WorkflowRecord>(`/workflow/cases/${encodeURIComponent(caseId)}`),
+  workflowActivity: (caseId: number | string) =>
+    request<WorkflowActivityResponse>(`/workflow/cases/${encodeURIComponent(caseId)}/activity`),
+  updateWorkflow: (caseId: number | string, update: WorkflowUpdate) =>
+    request<WorkflowRecord>(`/workflow/cases/${encodeURIComponent(caseId)}`, {
+      method: "PUT",
+      body: JSON.stringify(update),
+    }),
   figureUrl: (figureId: "pr_curves" | "shap_global_bar") => `${API_ROOT}/figures/${figureId}`,
   liveNarrative: (caseId: number) =>
     request<LiveNarrativeResponse>("/live/narrative", {

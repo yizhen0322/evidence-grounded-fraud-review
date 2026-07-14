@@ -120,9 +120,7 @@ class RecordedCase:
             "score": self.score,
             "pred": self.pred,
             "detector_flagged": self.pred == 1,
-            "y_true": self.y_true,
             "detector": self.detector_label,
-            "evaluation_only_ground_truth": self.historical_label,
             "top_reason": top.public(),
             "recorded_narrative_status": (
                 "Fallback" if self.narrative.fallback else "Passed"
@@ -137,15 +135,8 @@ class RecordedCase:
             "score": self.score,
             "pred": self.pred,
             "detector_flagged": self.pred == 1,
-            "y_true": self.y_true,
             "detector": self.detector_label,
             "threshold": self.threshold,
-            "evaluation_only_ground_truth": self.historical_label,
-            "evaluation_only_notice": (
-                "Historical ground truth used only for evaluation; it was not "
-                "available to the detector at prediction time."
-            ),
-            "outcome": self.outcome,
             "reason_codes": [code.public() for code in self.reason_codes],
             "narrative": self.narrative.public(),
             "data_sent_to_llm": {

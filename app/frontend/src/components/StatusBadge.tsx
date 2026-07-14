@@ -1,5 +1,6 @@
-import type { CheckState, GuardrailCheckName } from "../api/types";
+import type { CheckState, GuardrailCheckName, WorkflowStatus } from "../api/types";
 import { AlertIcon, CheckIcon } from "./icons";
+import { WORKFLOW_LABELS } from "./workflowLabels";
 
 const CHECK_LABELS: Record<GuardrailCheckName, string> = {
   format: "Format",
@@ -45,5 +46,14 @@ export function GuardrailBadges({
         </div>
       ))}
     </div>
+  );
+}
+
+export function WorkflowBadge({ status }: { status: WorkflowStatus }) {
+  return (
+    <span className={`workflow-badge is-${status}`}>
+      <span aria-hidden="true" />
+      {WORKFLOW_LABELS[status]}
+    </span>
   );
 }

@@ -25,7 +25,7 @@ ALLOWED_TRANSITIONS = {
     "unreviewed": {"in_review"},
     "in_review": {"in_review", "needs_follow_up", "review_complete"},
     "needs_follow_up": {"needs_follow_up", "in_review", "review_complete"},
-    "review_complete": {"review_complete", "in_review"},
+    "review_complete": {"in_review"},
 }
 
 
@@ -152,9 +152,10 @@ class WorkflowStore:
                 (case_id,),
             ).fetchone()[0]
             payload = self._record_payload(row, activity_count=count)
-            payload["evidence_compatible"] = (
-                row["evidence_fingerprint"] == current_fingerprint
-            )
+            compatible = row["evidence_fingerprint"] == current_fingerprint
+            payload["evidence_compatible"] = compatible
+            if not compatible:
+                payload.update(status="unreviewed", disposition=None, note="")
             return payload
 
     def list(self, case_ids: Iterable[int], current_fingerprint: str) -> list[dict]:
@@ -181,9 +182,10 @@ class WorkflowStore:
                 items.append(_default_record(case_id))
                 continue
             payload = self._record_payload(row, activity_count=row["activity_count"])
-            payload["evidence_compatible"] = (
-                row["evidence_fingerprint"] == current_fingerprint
-            )
+            compatible = row["evidence_fingerprint"] == current_fingerprint
+            payload["evidence_compatible"] = compatible
+            if not compatible:
+                payload.update(status="unreviewed", disposition=None, note="")
             items.append(payload)
         return items
 
@@ -243,18 +245,26 @@ class WorkflowStore:
             current_revision = 0 if row is None else row["revision"]
             current_note = "" if row is None else row["note"]
             current_disposition = None if row is None else row["disposition"]
+            evidence_mismatch = (
+                row is not None
+                and row["evidence_fingerprint"] != current_fingerprint
+            )
 
-            if row is not None and row["evidence_fingerprint"] != current_fingerprint:
-                raise WorkflowEvidenceMismatchError(
-                    "saved workflow metadata belongs to another evidence chain"
-                )
             if expected_revision != current_revision:
                 raise WorkflowConflictError(
                     f"stale workflow revision {expected_revision}; current revision is {current_revision}"
                 )
-            if status not in ALLOWED_TRANSITIONS[current_status]:
+            if evidence_mismatch and not (
+                status == "in_review" and disposition is None and note == ""
+            ):
+                raise WorkflowEvidenceMismatchError(
+                    "saved workflow metadata belongs to another evidence chain; restart the review with blank local fields"
+                )
+
+            transition_status = "unreviewed" if evidence_mismatch else current_status
+            if status not in ALLOWED_TRANSITIONS[transition_status]:
                 raise WorkflowTransitionError(
-                    f"cannot transition workflow from {current_status} to {status}"
+                    f"cannot transition workflow from {transition_status} to {status}"
                 )
 
             revision = current_revision + 1
@@ -286,7 +296,9 @@ class WorkflowStore:
             )
 
             event_type = "review_updated"
-            if current_status == "unreviewed" and status == "in_review":
+            if evidence_mismatch:
+                event_type = "evidence_review_restarted"
+            elif current_status == "unreviewed" and status == "in_review":
                 event_type = "review_started"
             elif current_status == "review_complete" and status == "in_review":
                 event_type = "review_reopened"

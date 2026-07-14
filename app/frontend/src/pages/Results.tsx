@@ -47,11 +47,18 @@ export function Results() {
     <div className="route-page route-enter">
       <section className="page-heading results-heading">
         <div>
-          <span className="eyebrow">Recorded research outputs</span>
-          <h1>Results</h1>
-          <p>Detector performance and explanation faithfulness are separate stages with separate evidence.</p>
+          <span className="eyebrow">Model Assurance</span>
+          <h1>Model & Policy Monitor</h1>
+          <p>Recorded evaluation evidence. This page is not live production telemetry.</p>
         </div>
-        <button className="button secondary" onClick={openProvenance} type="button"><FingerprintIcon /> Inspect result provenance</button>
+        <button className="button secondary" onClick={openProvenance} type="button"><FingerprintIcon /> Inspect evaluation provenance</button>
+      </section>
+
+      <section aria-label="Evaluation boundary" className="assurance-ledger monitor-ledger">
+        <div><span>Snapshot</span><strong>Frozen evaluation artifacts</strong></div>
+        <div><span>Detector stage</span><strong>G0/G1/G2/G3/G6/G7</strong></div>
+        <div><span>Explanation stage</span><strong>G4/G5 evaluated separately</strong></div>
+        <div><span>Operational claim</span><strong>No live SLA or fraud-prevention metric</strong></div>
       </section>
 
       <section className="results-section" aria-labelledby="detector-results-title">

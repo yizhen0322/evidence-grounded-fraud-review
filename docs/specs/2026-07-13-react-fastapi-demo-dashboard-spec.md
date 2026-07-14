@@ -1,5 +1,7 @@
 # React + FastAPI Demo Dashboard Specification
 
+> **Scope update — 2026-07-14:** the presentation framing in this document is superseded by `docs/specs/2026-07-14-fraud-review-workbench-spec.md`. The research-artifact contracts below remain binding, but the delivered product now adds a separate local SQLite workflow plane for analyst status, provisional disposition, notes, revisions, and activity events. Detector, G4, G5, and report artifacts remain immutable.
+
 **Project:** Credit Card Fraud Detection using a Hybrid Autoencoder-XGBoost Model with Local LLM Explanations  
 **Date:** 2026-07-13  
 **Status:** Approved design; implementation scheduled as CP2 Task 7.4  
@@ -10,7 +12,7 @@
 
 The live demonstration will use a **React + TypeScript + Vite** single-page application backed by **FastAPI**. FastAPI is the only production server: after the frontend is built, it serves both the JSON API and the React assets from one loopback process.
 
-The dashboard is a read-only presentation and investigation layer. It consumes frozen detector, G4, G5, and report artifacts; it does not train models, select thresholds, recompute reported metrics, regenerate SHAP explanations, or write to experiment directories.
+The evidence plane is a read-only presentation and investigation layer. It consumes frozen detector, G4, G5, and report artifacts; it does not train models, select thresholds, recompute reported metrics, regenerate SHAP explanations, or write to experiment directories. The later workbench scope stores only local analyst workflow metadata in a separate database.
 
 The dashboard's central claim is:
 

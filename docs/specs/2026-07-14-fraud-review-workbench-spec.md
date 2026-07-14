@@ -122,7 +122,7 @@ Purpose: complete one provisional analyst review.
 - data-minimization disclosure;
 - provenance access.
 
-`y_true` is hidden from the operational workspace. It may appear only in a collapsed, explicitly labelled **Research evaluation overlay**.
+`y_true`, retrospective outcome text, and historical-label filtering are excluded from operational queue and case APIs. Retrospective outcomes appear only as aggregate research evidence in Model Assurance and in internal validation code, never as an analyst case input.
 
 ### Decision rail
 

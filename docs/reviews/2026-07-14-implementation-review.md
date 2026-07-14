@@ -1,11 +1,12 @@
 # Independent implementation review — 2026-07-14
 
-Verdict: **COMMENT** — the committed detector→G4→G5→results pipeline and React/FastAPI dashboard are provenance-valid with no open BLOCKER or MAJOR finding. The dashboard exact-artifact integration is cleared; one confirmed MINOR validator false-rejection boundary remains.
+Verdict: **COMMENT** — the committed detector→G4→G5→results pipeline and React/FastAPI Fraud Review Workbench are provenance-valid with no open BLOCKER or MAJOR finding. The exact-artifact integration and separate analyst workflow plane are cleared; one confirmed MINOR validator false-rejection boundary remains.
 
 - Pipeline review baseline: `6dd766aab32f364193975707f8ef5286ef30bf81`
 - Dashboard review baseline: `b15aed586101a59813b73e924c2a8bd31f47e619`
+- Analyst-workflow backend baseline: `4ca8408`
 - Reviewer role: independent adversarial Codex review; no experiment artifact was modified or regenerated.
-- Architectural status: **WATCH** for the overall project because the validator deliberately implements a closed accepted-language grammar. Dashboard architectural status: **CLEAR** after exact-artifact, read-only, recorded/live-separation, and production-route verification.
+- Architectural status: **WATCH** for the overall project because the validator deliberately implements a closed accepted-language grammar. Workbench architectural status: **CLEAR** after exact-artifact verification, evidence/workflow separation, recorded/live separation, persistent local review state, and product-route verification.
 - Recommendation: **COMMENT**. The implementation is suitable for report drafting and examiner rehearsal if the validator limitation and remaining human-only work are stated explicitly.
 
 ## Findings
@@ -73,6 +74,24 @@ These were confirmed during Review F and fixed before the dashboard baseline abo
 
 1. **Closed provenance drawer retained a hidden keyboard target.** `app/frontend/src/components/AppShell.tsx` now makes the closed drawer `inert`, and `app/frontend/e2e/dashboard.spec.ts` proves that the attribute is removed only while the drawer is open.
 2. **Dashboard configuration accepted more loopback hosts than the evaluated Ollama client.** `app/backend/settings.py` now reuses `src.narratives.llm_client.assert_local_ollama_host()`, and `tests/dashboard_backend/test_settings.py` rejects the previously accepted `127.0.0.2` mismatch.
+
+## Analyst-workbench productization follow-up
+
+- The default route is now a dense Work Queue rather than a research results page.
+- Operations and Model Assurance are separate navigation areas. Guardrail challenge controls and aggregate experiment results are outside the daily review path.
+- A separate SQLite workflow plane persists only `case_id`, review status, provisional disposition, analyst note, revision, evidence fingerprint, and local activity events.
+- The workflow schema excludes detector score, threshold, `y_true`, SHAP values, reason codes, narratives, and reported metrics. Backend writes reject unknown cases, invalid transitions, stale revisions, and evidence-fingerprint mismatches.
+- The Investigation Workspace supports start review, save, needs follow-up, complete, reopen, activity history, and save/open-next while retaining immutable detector, G4, and G5 evidence.
+- Historical ground truth and the historical-label filter are absent from the operational queue and case APIs, not merely hidden by the browser. Retrospective outcomes remain available only as aggregate research evidence in Model Assurance and internal artifact validation.
+- Legacy `/guardrails` and `/results` links redirect to `/assurance/narratives` and `/assurance/performance`.
+- Product wording is limited to **local analyst decision-support prototype backed by immutable, provenance-verified research evidence**. It does not claim bank deployment, production readiness, real-time prevention, measured productivity, money saved, or compliance.
+
+An independent product implementation review initially found four MAJOR workflow seams; all were resolved before final verification:
+
+1. Workflow records bound to an older evidence fingerprint are now masked as unreviewed, excluded from completed counts, and can restart only with blank local fields against the current evidence chain.
+2. A frontend optimistic-revision conflict now clears the stale local override and reloads the server revision before a retry; a component regression test proves the next write uses the refreshed revision.
+3. `y_true`, retrospective outcome text, and the historical-label filter were removed from operational API responses and UI.
+4. Completed reviews can no longer be rewritten while remaining complete; they must transition through explicit reopen first.
 
 ## Additional guardrail probes
 
@@ -148,8 +167,9 @@ The fallback text was deterministic and was rebuilt from the bound G4 record's r
 
 ### G — Tests and completeness
 
-- `uv run pytest -q` passed: 168 tests, 12 dependency deprecation warnings.
-- Dashboard-specific verification passed: 20 FastAPI/backend tests, 2 Vitest component tests, 8 Playwright E2E tests, ESLint with zero warnings, TypeScript/Vite production build, and the exact dashboard validator.
+- `uv run pytest -q` passed after workbench productization and independent review repair: 179 tests, 12 dependency deprecation warnings.
+- Dashboard-specific verification passed: workflow/FastAPI backend tests, 4 Vitest component tests, 10 Playwright E2E tests, ESLint with zero warnings, TypeScript/Vite production build, and the exact dashboard validator.
+- The workflow no-write regression now hashes and checks mtimes for at least 18 configured detector/G4/G5/results artifacts rather than only their four manifests.
 - Playwright covers all three attacks, live success, transport fallback with four `NOT_RUN` states, deep-link refresh, detector/explanation stage separation, keyboard route navigation, closed-drawer focus exclusion, and rejection of non-loopback browser traffic.
 - No committed `xfail` or `skip` was observed in the reviewed test set.
 - Critical negative contracts exist for split IDs, threshold indexing, G4 joins, G5 final-run invariants, forged G5 semantics, source hashes, local Ollama endpoints, audit reconstruction, results allowlisting, and output hash changes.
@@ -189,7 +209,7 @@ Read-only Python verification also executed:
 - Full-data retraining was prohibited by the review charter; saved artifacts, manifests, unit tests, and recomputation were used instead.
 - Human audit scoring was not run because the audit columns are intentionally blank and may only be filled by humans.
 - Projector-room readability and three complete timed examiner rehearsals require the student's presentation setup and remain pending.
-- Claude review was authorized but could not run because the local Claude CLI had no authenticated session or `ANTHROPIC_API_KEY`; native adversarial review and executable verification were used instead.
+- Claude review was authorized and the local CLI was authenticated, but its API call first failed DNS resolution and a later retry hit the Claude session limit. Native adversarial review and executable verification were used instead; no Claude opinion is represented as completed.
 - No external citation or literature novelty review was performed in this code-review task.
 
 ## Count

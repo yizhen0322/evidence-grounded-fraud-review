@@ -3,6 +3,8 @@ export type GuardrailCheckName = "format" | "completeness" | "grounding" | "dire
 export type Mode = "recorded" | "live";
 export type RiskBucket = "High" | "Medium" | "Low" | string;
 export type AttackPreset = "direction_flip" | "unlisted_feature" | "template_corruption";
+export type WorkflowStatus = "unreviewed" | "in_review" | "needs_follow_up" | "review_complete";
+export type WorkflowDisposition = "suspicious" | "not_suspicious" | "inconclusive";
 
 export interface ApiErrorShape {
   code?: string;
@@ -27,6 +29,7 @@ export interface HealthResponse {
     status?: "available" | "unavailable" | "checking" | string;
     model?: string;
   };
+  workflow_status?: "ready" | "unavailable" | string;
 }
 
 export interface ProvenanceEntry {
@@ -97,7 +100,6 @@ export interface CaseSummary {
   score: number;
   pred?: number;
   detector_flagged?: boolean;
-  y_true: number;
   top_reason?: ReasonCode | string | null;
   recorded_narrative_status?: "passed" | "fallback" | "unavailable" | string;
   recorded_fallback?: boolean;
@@ -113,14 +115,11 @@ export interface CasesResponse {
 
 export interface CaseDetail extends CaseSummary {
   threshold?: number | null;
-  outcome?: string;
   reason_codes?: ReasonCode[];
   codes?: ReasonCode[];
   recorded_narrative?: NarrativeView | null;
   narrative?: NarrativeView | null;
   source_run_ids?: string[];
-  evaluation_only_ground_truth?: string;
-  evaluation_only_notice?: string;
   data_sent_to_llm?: {
     payload?: string;
     included?: string[];
@@ -213,4 +212,50 @@ export interface ResultsResponse {
     results_manifest_sha256?: string;
     source_run_ids?: string[];
   };
+}
+
+export interface WorkflowRecord {
+  case_id: number;
+  status: WorkflowStatus;
+  disposition: WorkflowDisposition | null;
+  note: string;
+  revision: number;
+  created_at: string | null;
+  updated_at: string | null;
+  evidence_compatible: boolean;
+  activity_count: number;
+}
+
+export interface WorkflowListResponse {
+  items: WorkflowRecord[];
+  total: number;
+}
+
+export interface WorkflowSummaryResponse {
+  total: number;
+  counts: Record<WorkflowStatus, number>;
+  recorded_fallback: number;
+  evidence_fingerprint: string;
+}
+
+export interface WorkflowActivityEvent {
+  id: number;
+  event_type: string;
+  from_status: WorkflowStatus | null;
+  to_status: WorkflowStatus;
+  disposition: WorkflowDisposition | null;
+  note_changed: boolean;
+  revision: number;
+  created_at: string;
+}
+
+export interface WorkflowActivityResponse {
+  items: WorkflowActivityEvent[];
+}
+
+export interface WorkflowUpdate {
+  revision: number;
+  status: WorkflowStatus;
+  disposition: WorkflowDisposition | null;
+  note: string;
 }

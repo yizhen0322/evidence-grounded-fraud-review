@@ -11,8 +11,10 @@ export default function App() {
       <Routes>
         <Route path="/queue" element={<CaseQueue />} />
         <Route path="/cases/:caseId" element={<Investigation />} />
-        <Route path="/guardrails" element={<GuardrailLab />} />
-        <Route path="/results" element={<Results />} />
+        <Route path="/assurance/narratives" element={<GuardrailLab />} />
+        <Route path="/assurance/performance" element={<Results />} />
+        <Route path="/guardrails" element={<Navigate replace to="/assurance/narratives" />} />
+        <Route path="/results" element={<Navigate replace to="/assurance/performance" />} />
         <Route path="/" element={<Navigate replace to="/queue" />} />
         <Route path="*" element={<Navigate replace to="/queue" />} />
       </Routes>

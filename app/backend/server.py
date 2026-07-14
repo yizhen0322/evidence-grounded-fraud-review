@@ -170,7 +170,6 @@ def create_app(
     @app.get("/api/v1/cases")
     def cases(
         risk_bucket: Literal["High", "Medium", "Low"] | None = None,
-        historical_label: int | None = Query(default=None, ge=0, le=1),
         recorded_fallback: bool | None = None,
         offset: int = Query(default=0, ge=0),
         limit: int = Query(default=50, ge=1, le=200),
@@ -178,8 +177,6 @@ def create_app(
         selected = list(snapshot.cases.values())
         if risk_bucket is not None:
             selected = [case for case in selected if case.risk_bucket == risk_bucket]
-        if historical_label is not None:
-            selected = [case for case in selected if case.y_true == historical_label]
         if recorded_fallback is not None:
             selected = [
                 case for case in selected if case.narrative.fallback is recorded_fallback

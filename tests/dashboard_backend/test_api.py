@@ -22,7 +22,7 @@ def test_health_provenance_and_scenarios_are_public_safe(api_client):
     }
 
 
-def test_cases_are_sorted_filtered_and_historically_labelled(api_client):
+def test_cases_are_sorted_and_exclude_historical_ground_truth(api_client):
     response = api_client.get("/api/v1/cases?limit=5")
     assert response.status_code == 200
     rows = response.json()["items"]
@@ -30,22 +30,22 @@ def test_cases_are_sorted_filtered_and_historically_labelled(api_client):
         [row["score"] for row in rows], reverse=True
     )
     assert rows[0]["case_id"] == 42009
-    assert all("evaluation_only_ground_truth" in row for row in rows)
+    assert all("evaluation_only_ground_truth" not in row for row in rows)
+    assert all("y_true" not in row for row in rows)
     assert all(row["pred"] == 1 and row["detector_flagged"] for row in rows)
 
-    false_positive = api_client.get(
-        "/api/v1/cases?historical_label=0&recorded_fallback=false"
-    )
-    assert false_positive.status_code == 200
-    assert [row["case_id"] for row in false_positive.json()["items"]] == [120085]
+    filtered = api_client.get("/api/v1/cases?recorded_fallback=false")
+    assert filtered.status_code == 200
+    assert all(not row["recorded_fallback"] for row in filtered.json()["items"])
 
 
 def test_case_results_and_figures_keep_stage_boundaries(api_client):
     detail = api_client.get("/api/v1/cases/42009")
     assert detail.status_code == 200
     payload = detail.json()
-    assert payload["evaluation_only_ground_truth"] == "Fraud"
-    assert payload["y_true"] == 1
+    assert "evaluation_only_ground_truth" not in payload
+    assert "y_true" not in payload
+    assert "outcome" not in payload
     assert payload["pred"] == 1
     assert payload["narrative"]["mode"] == "recorded"
     assert payload["narrative"]["reported"] is True

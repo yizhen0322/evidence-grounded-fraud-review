@@ -79,20 +79,27 @@ export function GuardrailLab() {
     <div className="route-page route-enter">
       <section className="page-heading guardrail-heading">
         <div>
-          <span className="eyebrow">Deterministic adversarial demo</span>
-          <h1>Guardrail Lab</h1>
-          <p>Mutations are built server-side, then checked by the real <code>validate_narrative()</code> implementation.</p>
+          <span className="eyebrow">Model Assurance</span>
+          <h1>Narrative Assurance</h1>
+          <p>Controlled policy tests use recorded evidence and the real <code>validate_narrative()</code> implementation.</p>
         </div>
         <div className="lab-principle">
           <ShieldIcon size={24} />
-          <span><strong>Reject, then fall back</strong><small>The LLM never gets the final word.</small></span>
+          <span><strong>Fail closed, then fall back</strong><small>Assurance testing · not a reported G5 run.</small></span>
         </div>
+      </section>
+
+      <section aria-label="Narrative assurance boundary" className="assurance-ledger">
+        <div><span>Validator</span><strong>Real source implementation</strong></div>
+        <div><span>Evidence</span><strong>Recorded and provenance-bound</strong></div>
+        <div><span>Delivery policy</span><strong>Reject → reason-code fallback</strong></div>
+        <div><span>Persistence</span><strong>Controlled mutations are not saved</strong></div>
       </section>
 
       <div className="lab-layout">
         <aside className="lab-controls" aria-label="Guardrail attack controls">
           <div className="section-heading-line">
-            <div><span className="eyebrow">Test setup</span><h2>Choose an attack</h2></div>
+            <div><span className="eyebrow">Controlled test</span><h2>Select a policy challenge</h2></div>
             <span className="stage-number">01</span>
           </div>
           <label className="control-field">
@@ -124,16 +131,16 @@ export function GuardrailLab() {
           </fieldset>
           <div className="lab-actions">
             <button className="button primary" disabled={loading} onClick={runValidation} type="button">
-              {loading ? "Validating…" : "Run validation"}
+              {loading ? "Validating…" : "Run assurance test"}
             </button>
             <button className="button text-button" onClick={reset} type="button"><RefreshIcon /> Reset</button>
           </div>
-          <p className="control-footnote">The browser submits only <code>case_id</code> and an allowlisted preset. Arbitrary narrative text is not accepted.</p>
+          <p className="control-footnote">The browser submits only <code>case_id</code> and an allowlisted preset. This assurance path cannot accept arbitrary text.</p>
         </aside>
 
         <section className="lab-output" aria-labelledby="lab-output-title">
           <div className="section-heading-line">
-            <div><span className="eyebrow">Validator output</span><h2 id="lab-output-title">Observe the rejection</h2></div>
+            <div><span className="eyebrow">Policy trace</span><h2 id="lab-output-title">Validation decision</h2></div>
             <span className="stage-number">02</span>
           </div>
           {!result && !error ? (
@@ -173,7 +180,7 @@ export function GuardrailLab() {
                 <AlertIcon />
                 <div><strong>Deterministic fallback delivered</strong><p>{result.final_text}</p></div>
               </div>
-              <Link className="inline-link" to={`/cases/${result.case_id}`}>Return to recorded investigation <ArrowIcon size={14} /></Link>
+              <Link className="inline-link" to={`/cases/${result.case_id}`}>Return to Investigation Workspace <ArrowIcon size={14} /></Link>
             </div>
           ) : null}
         </section>
