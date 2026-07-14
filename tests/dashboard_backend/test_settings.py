@@ -32,6 +32,7 @@ server:
     "old,new,message",
     [
         ("http://127.0.0.1:11434", "https://ollama.example.com", "loopback"),
+        ("http://127.0.0.1:11434", "http://127.0.0.2:11434", "loopback"),
         ("host: 127.0.0.1", "host: 0.0.0.0", "loopback"),
         ("experiments/runs/detector", "experiments/runs/latest", "latest"),
         ("experiments/runs/g4", "experiments/runs/g*", "glob"),

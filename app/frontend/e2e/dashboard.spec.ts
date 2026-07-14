@@ -1,6 +1,9 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
-const health = { artifact_ready: true, ollama_status: "unavailable", build_version: "e2e" };
+type AttackPreset = "direction_flip" | "unlisted_feature" | "template_corruption";
+type LiveFixture = "accepted" | "transport_unavailable";
+
+const health = { artifact_ready: true, ollama_status: "available", build_version: "e2e" };
 const provenance = {
   source_chain_valid: true,
   source_code_compatible: true,
@@ -8,45 +11,191 @@ const provenance = {
   g4: { run_id: "g4", manifest_sha256: "b".repeat(64) },
   g5: { run_id: "g5", manifest_sha256: "c".repeat(64) },
 };
-const scenarios = { faithful_case_id: 42009, error_or_uncertainty_case_id: 120085, attack_case_id: 42009 };
+const scenarios = {
+  scenarios: [
+    {
+      key: "faithful",
+      kind: "faithful",
+      case_id: 42009,
+      title: "Faithful recorded case",
+      description: "Follow accepted evidence through the explanation chain.",
+    },
+    {
+      key: "error",
+      kind: "error",
+      case_id: 120085,
+      title: "Real false positive",
+      description: "Inspect an evaluation-only legitimate transaction.",
+    },
+    {
+      key: "attack",
+      kind: "attack",
+      case_id: 42009,
+      title: "Guardrail challenge",
+      description: "Run deterministic validator attacks.",
+    },
+  ],
+};
 const narrative = {
+  mode: "recorded",
+  reported: true,
   final_text: "Risk: High\nReasons: V14 increases risk.\nAction: Review.",
   checks: { format: "PASS", completeness: "PASS", grounding: "PASS", direction: "PASS" },
   fallback: false,
   latency_seconds: 1.2,
 };
 const caseRecord = {
-  case_id: 42009, risk_bucket: "High", score: 0.94, pred: 1, y_true: 1, threshold: 0.42,
+  case_id: 42009,
+  risk_bucket: "High",
+  score: 0.94,
+  pred: 1,
+  detector_flagged: true,
+  y_true: 1,
+  threshold: 0.42,
   top_reason: { feature: "V14", direction: "increases_risk", rank: 1, shap_value: 2.4 },
   reason_codes: [{ feature: "V14", direction: "increases_risk", rank: 1, shap_value: 2.4 }],
+  recorded_narrative_status: "passed",
   recorded_narrative: narrative,
+  data_sent_to_llm: {
+    payload: "Case ID: 42009\nRisk level: High\n1. V14 increases risk",
+    included: ["Case identifier", "Coarse risk bucket", "Feature names", "Direction and rank"],
+    excluded: ["Raw transaction row", "Detector score or probability", "SHAP magnitudes", "Historical label"],
+  },
 };
 
-test.beforeEach(async ({ page }) => {
+const attackTargets: Record<AttackPreset, { check: string; tampered: string; reason: string }> = {
+  direction_flip: {
+    check: "direction",
+    tampered: narrative.final_text.replace("increases", "decreases"),
+    reason: "V14 direction contradicts recorded evidence.",
+  },
+  unlisted_feature: {
+    check: "grounding",
+    tampered: narrative.final_text.replace("V14", "merchant_score"),
+    reason: "merchant_score is absent from the recorded evidence.",
+  },
+  template_corruption: {
+    check: "format",
+    tampered: "High risk because V14 increases risk.",
+    reason: "Required narrative sections are missing.",
+  },
+};
+
+const results = {
+  detector_results: [
+    { group: "g0", label: "Baseline", auc_pr_mean: 0.81, auc_pr_std: 0.02 },
+    { group: "g4", label: "Explanation stage", auc_pr_mean: 0.99 },
+    { group: "g6", label: "Hybrid", auc_pr_mean: 0.855, auc_pr_std: 0.027 },
+    { group: "g5", label: "Narrative stage", auc_pr_mean: 0.99 },
+  ],
+  explanation_results: {
+    strict: {
+      arm: "strict",
+      format: { rate: 0, n: 51, ci_low: 0, ci_high: 0.07 },
+      completeness: { rate: 0, n: 51, ci_low: 0, ci_high: 0.07 },
+      grounding: { rate: 0.02, n: 51, ci_low: 0.004, ci_high: 0.10 },
+      direction: { rate: 0.02, n: 51, ci_low: 0.004, ci_high: 0.10 },
+      any_detected_violation: { rate: 0.0392, n: 51, ci_low: 0.011, ci_high: 0.132 },
+      fallback: { rate: 0.0392, n: 51, ci_low: 0.011, ci_high: 0.132, by_construction: true },
+      mean_latency_seconds: 1.2,
+      llm_transport_unavailable_count: 0,
+    },
+    simple: {
+      arm: "simple",
+      any_detected_violation: { rate: 1, n: 51, ci_low: 0.93, ci_high: 1 },
+      fallback: { rate: 1, n: 51, ci_low: 0.93, ci_high: 1, by_construction: true },
+      mean_latency_seconds: 0.9,
+      llm_transport_unavailable_count: 0,
+    },
+  },
+};
+
+async function installApiFixtures(page: Page, live: LiveFixture = "accepted") {
+  const captured = {
+    liveBodies: [] as unknown[],
+    guardrailBodies: [] as unknown[],
+  };
+
   await page.route("**/api/v1/**", async (route) => {
-    const url = new URL(route.request().url());
-    if (url.pathname.endsWith("/health")) return route.fulfill({ json: health });
+    const request = route.request();
+    const url = new URL(request.url());
+    if (url.pathname.endsWith("/health")) {
+      return route.fulfill({
+        json: { ...health, ollama_status: live === "accepted" ? "available" : "unavailable" },
+      });
+    }
     if (url.pathname.endsWith("/provenance")) return route.fulfill({ json: provenance });
     if (url.pathname.endsWith("/demo-scenarios")) return route.fulfill({ json: scenarios });
     if (url.pathname.endsWith("/cases")) return route.fulfill({ json: { items: [caseRecord], total: 1 } });
     if (url.pathname.endsWith("/cases/42009")) return route.fulfill({ json: caseRecord });
-    if (url.pathname.endsWith("/guardrails/demo")) return route.fulfill({ json: {
-      case_id: 42009, preset: "direction_flip", original_text: narrative.final_text,
-      tampered_text: narrative.final_text.replace("increases", "decreases"),
-      checks: { format: "PASS", completeness: "PASS", grounding: "PASS", direction: "FAIL" },
-      check_reasons: { direction: "V14 direction contradicts recorded evidence." },
-      fallback: true, fallback_reason: "direction", final_text: "Reason codes: V14 increases risk.",
-    } });
-    if (url.pathname.endsWith("/results")) return route.fulfill({ json: {
-      detector_results: [{ group: "g6", auc_pr_mean: 0.855, auc_pr_std: 0.027 }],
-      explanation_results: { strict: { arm: "strict", any_detected_violation: { rate: 0.1, n: 51 }, fallback: { rate: 0.1, n: 51 } } },
-    } });
+    if (url.pathname.endsWith("/guardrails/demo")) {
+      const body = request.postDataJSON() as { case_id: number; preset: AttackPreset };
+      captured.guardrailBodies.push(body);
+      const attack = attackTargets[body.preset];
+      const checks = { format: "PASS", completeness: "PASS", grounding: "PASS", direction: "PASS" };
+      checks[attack.check as keyof typeof checks] = "FAIL";
+      return route.fulfill({
+        headers: { "Cache-Control": "no-store" },
+        json: {
+          mode: "guardrail_demo",
+          reported: false,
+          case_id: body.case_id,
+          preset: body.preset,
+          original_text: narrative.final_text,
+          tampered_text: attack.tampered,
+          checks,
+          check_reasons: { [attack.check]: attack.reason },
+          fallback: true,
+          fallback_reason: attack.check,
+          final_text: "Risk level: High\nReason codes: V14 increases risk.",
+          validator: "src.narratives.guardrails.validate_narrative",
+        },
+      });
+    }
+    if (url.pathname.endsWith("/live/narrative")) {
+      const body = request.postDataJSON() as { case_id: number };
+      captured.liveBodies.push(body);
+      if (live === "transport_unavailable") {
+        return route.fulfill({
+          headers: { "Cache-Control": "no-store" },
+          json: {
+            mode: "live_demo",
+            reported: false,
+            case_id: body.case_id,
+            raw_text: null,
+            final_text: "Risk level: High\nReason codes: V14 increases risk.",
+            checks: { format: "NOT_RUN", completeness: "NOT_RUN", grounding: "NOT_RUN", direction: "NOT_RUN" },
+            fallback: true,
+            fallback_reason: "llm_transport_unavailable",
+            latency_seconds: 0.01,
+          },
+        });
+      }
+      return route.fulfill({
+        headers: { "Cache-Control": "no-store" },
+        json: {
+          mode: "live_demo",
+          reported: false,
+          case_id: body.case_id,
+          raw_text: narrative.final_text,
+          final_text: narrative.final_text,
+          checks: { format: "PASS", completeness: "PASS", grounding: "PASS", direction: "PASS" },
+          fallback: false,
+          fallback_reason: null,
+          latency_seconds: 0.4,
+        },
+      });
+    }
+    if (url.pathname.endsWith("/results")) return route.fulfill({ json: results });
     if (url.pathname.includes("/figures/")) return route.fulfill({ status: 404 });
     return route.fulfill({ status: 404, json: { message: "Unhandled fixture request" } });
   });
-});
 
-test("recorded queue to investigation to guardrail result", async ({ page }) => {
+  return captured;
+}
+
+test("recorded queue to investigation keeps all browser traffic loopback-only", async ({ page }) => {
+  const captured = await installApiFixtures(page);
   const nonLoopback: string[] = [];
   page.on("request", (request) => {
     const url = new URL(request.url());
@@ -56,11 +205,108 @@ test("recorded queue to investigation to guardrail result", async ({ page }) => 
   await page.goto("/queue");
   await expect(page.getByRole("heading", { name: "Flagged case queue" })).toBeVisible();
   await page.getByRole("button", { name: /Open case/ }).click();
-  await expect(page.getByRole("heading", { name: /Case/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Case 42009/ })).toBeVisible();
   await expect(page.getByText("Evaluation-only ground truth")).toBeVisible();
-  await page.getByRole("link", { name: /Challenge this narrative/ }).click();
-  await page.getByRole("button", { name: "Run validation" }).click();
-  await expect(page.getByText("Rejected → fallback active")).toBeVisible();
-  await expect(page.getByText("Direction", { exact: true }).last()).toBeVisible();
+  await expect(page.getByText("Recorded strict-prompt arm · Reportable frozen output")).toBeVisible();
+  expect(captured.liveBodies).toEqual([]);
   expect(nonLoopback).toEqual([]);
+});
+
+test("all three guardrail presets fail their intended check and activate fallback", async ({ page }) => {
+  const captured = await installApiFixtures(page);
+  const cases: Array<{ preset: AttackPreset; label: string; check: string }> = [
+    { preset: "direction_flip", label: "Direction flip", check: "Direction" },
+    { preset: "unlisted_feature", label: "Unlisted feature", check: "Grounding" },
+    { preset: "template_corruption", label: "Template corruption", check: "Format" },
+  ];
+
+  await page.goto("/guardrails?case_id=42009");
+  for (const item of cases) {
+    await page.getByText(item.label, { exact: true }).click();
+    await page.getByRole("button", { name: "Run validation" }).click();
+    await expect(page.getByText("Rejected → fallback active")).toBeVisible();
+    const badge = page.getByLabel("Guardrail checks").locator(".status-badge", { hasText: item.check });
+    await expect(badge).toContainText("FAIL");
+    await expect(page.getByText("Deterministic fallback delivered")).toBeVisible();
+  }
+
+  expect(captured.guardrailBodies).toEqual(cases.map(({ preset }) => ({ case_id: 42009, preset })));
+});
+
+test("live replay success is explicitly demo-only and accepted", async ({ page }) => {
+  const captured = await installApiFixtures(page, "accepted");
+  await page.goto("/cases/42009");
+  await page.getByRole("button", { name: "Live replay", exact: true }).click();
+  await expect(page.getByText("Live replay has not been generated")).toBeVisible();
+  await page.getByRole("button", { name: "Generate live replay" }).click();
+
+  await expect(page.getByText("Accepted narrative")).toBeVisible();
+  await expect(page.getByText("Live replay · Demo-only; not a reported G5 result")).toBeVisible();
+  await expect(page.getByLabel("Guardrail checks").getByText("PASS", { exact: true })).toHaveCount(4);
+  expect(captured.liveBodies).toEqual([{ case_id: 42009 }]);
+});
+
+test("live transport failure becomes a successful NOT RUN fallback", async ({ page }) => {
+  const captured = await installApiFixtures(page, "transport_unavailable");
+  await page.goto("/cases/42009");
+  await page.getByRole("button", { name: "Live replay", exact: true }).click();
+  await page.getByRole("button", { name: "Generate live replay" }).click();
+
+  await expect(page.getByText("Fallback active")).toBeVisible();
+  await expect(page.getByText("Deterministic reason-code fallback delivered")).toBeVisible();
+  await expect(page.getByText("llm transport unavailable")).toBeVisible();
+  await expect(page.getByLabel("Guardrail checks").getByText("NOT RUN", { exact: true })).toHaveCount(4);
+  expect(captured.liveBodies).toEqual([{ case_id: 42009 }]);
+});
+
+test("case deep links survive a full browser refresh", async ({ page }) => {
+  await installApiFixtures(page);
+  await page.goto("/cases/42009");
+  await expect(page.getByRole("heading", { name: /Case 42009/ })).toBeVisible();
+  await page.reload();
+  await expect(page).toHaveURL(/\/cases\/42009$/);
+  await expect(page.getByRole("heading", { name: /Case 42009/ })).toBeVisible();
+});
+
+test("results keep detector metrics separate from G4 and G5 narrative evidence", async ({ page }) => {
+  await installApiFixtures(page);
+  await page.goto("/results");
+
+  const detectorSection = page.getByRole("region", { name: "Detector performance" });
+  const explanationSection = page.getByRole("region", { name: "Explanation & narrative evidence" });
+  await expect(detectorSection).toBeVisible();
+  await expect(explanationSection).toBeVisible();
+  await expect(detectorSection.getByRole("row")).toHaveCount(3);
+  await expect(detectorSection.getByText("G0", { exact: true })).toBeVisible();
+  await expect(detectorSection.getByText("G6", { exact: true })).toBeVisible();
+  await expect(detectorSection.getByText("G4", { exact: true })).toHaveCount(0);
+  await expect(detectorSection.getByText("G5", { exact: true })).toHaveCount(0);
+  await expect(explanationSection.getByText("3.9%", { exact: true }).first()).toBeVisible();
+  await explanationSection.getByText("Show simple-prompt comparison arm").click();
+  await expect(explanationSection.getByText(/100.0% · n=51/).first()).toBeVisible();
+});
+
+test("primary routes are keyboard reachable", async ({ page }) => {
+  await installApiFixtures(page);
+  await page.goto("/queue");
+
+  await page.keyboard.press("Tab");
+  await expect(page.getByRole("link", { name: "Queue" })).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(page.getByRole("link", { name: "Guardrail Lab" })).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("heading", { name: "Guardrail Lab" })).toBeVisible();
+});
+
+test("the closed provenance drawer cannot capture keyboard focus", async ({ page }) => {
+  await installApiFixtures(page);
+  await page.goto("/queue");
+
+  const drawer = page.locator('aside[aria-label="Artifact provenance"]');
+  await expect(drawer).toHaveAttribute("inert", "");
+  await page.getByRole("button", { name: "Provenance", exact: true }).click();
+  await expect(drawer).not.toHaveAttribute("inert", "");
+  await expect(page.getByRole("heading", { name: "Provenance" })).toBeVisible();
+  await drawer.getByRole("button", { name: "Close provenance drawer" }).click();
+  await expect(drawer).toHaveAttribute("inert", "");
 });

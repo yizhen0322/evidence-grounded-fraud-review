@@ -11,6 +11,8 @@ from urllib.parse import urlparse
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
+from src.narratives.llm_client import assert_local_ollama_host
+
 
 def _is_loopback_name(value: str) -> bool:
     if value.lower() == "localhost":
@@ -29,7 +31,7 @@ def assert_loopback_url(value: str) -> str:
         raise ValueError("Ollama host must be loopback-only")
     if parsed.username or parsed.password or parsed.query or parsed.fragment:
         raise ValueError("Ollama host must not include credentials, query, or fragment")
-    return value.rstrip("/")
+    return assert_local_ollama_host(value)
 
 
 def _validate_exact_path(value: str) -> str:

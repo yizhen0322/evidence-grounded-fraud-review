@@ -50,7 +50,12 @@ function ProvenanceDrawer({
         tabIndex={open ? 0 : -1}
         type="button"
       />
-      <aside aria-hidden={!open} aria-label="Artifact provenance" className={`provenance-drawer ${open ? "is-open" : ""}`}>
+      <aside
+        aria-hidden={!open}
+        aria-label="Artifact provenance"
+        className={`provenance-drawer ${open ? "is-open" : ""}`}
+        inert={!open}
+      >
         <div className="drawer-heading">
           <div>
             <span className="eyebrow">Verified source chain</span>
