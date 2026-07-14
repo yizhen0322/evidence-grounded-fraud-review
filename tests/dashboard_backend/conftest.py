@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 from app.backend.artifacts import load_snapshot
 from app.backend.server import create_app
 from app.backend.settings import DashboardSettings
+from app.backend.workflow import WorkflowStore
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -55,11 +56,17 @@ class StubLiveService:
 
 
 @pytest.fixture()
-def api_client(dashboard_settings, dashboard_snapshot):
+def workflow_store(tmp_path):
+    return WorkflowStore(tmp_path / "workflow.sqlite3")
+
+
+@pytest.fixture()
+def api_client(dashboard_settings, dashboard_snapshot, workflow_store):
     app = create_app(
         dashboard_settings,
         dashboard_snapshot,
         live_service=StubLiveService(),
+        workflow_store=workflow_store,
         require_frontend=False,
     )
     with TestClient(app) as client:

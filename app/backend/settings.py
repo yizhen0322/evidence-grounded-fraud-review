@@ -87,6 +87,13 @@ class ServerConfig(StrictModel):
         return value
 
 
+class WorkflowConfig(StrictModel):
+    enabled: bool = True
+    database_path: str = "var/dashboard/workflow.sqlite3"
+
+    _exact_database = field_validator("database_path")(_validate_exact_path)
+
+
 class DashboardConfig(StrictModel):
     schema_version: Literal[1]
     artifacts: ArtifactConfig
@@ -94,6 +101,7 @@ class DashboardConfig(StrictModel):
     recorded_narrative_arm: Literal["strict"] = "strict"
     ollama: OllamaConfig
     server: ServerConfig
+    workflow: WorkflowConfig = Field(default_factory=WorkflowConfig)
 
 
 @dataclass(frozen=True)
@@ -131,6 +139,21 @@ class DashboardSettings:
                 raise ValueError(
                     f"configured artifact path escapes repository root: {candidate.name}"
                 ) from error
+        workflow_database = settings.workflow_database
+        try:
+            workflow_database.relative_to(root)
+        except ValueError as error:
+            raise ValueError(
+                "configured workflow database escapes repository root"
+            ) from error
+        for protected in (root / "experiments", root / "reports"):
+            try:
+                workflow_database.relative_to(protected)
+            except ValueError:
+                continue
+            raise ValueError(
+                "workflow database must be outside experiment and report directories"
+            )
         return settings
 
     def _artifact(self, raw: str) -> Path:
@@ -158,3 +181,7 @@ class DashboardSettings:
     @property
     def frontend_dist(self) -> Path:
         return self.repo_root / "app/frontend/dist"
+
+    @property
+    def workflow_database(self) -> Path:
+        return self._artifact(self.config.workflow.database_path)

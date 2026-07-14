@@ -13,3 +13,4 @@ app/frontend/dist/
 app/frontend/coverage/
 app/frontend/playwright-report/
 app/frontend/test-results/
+var/dashboard/

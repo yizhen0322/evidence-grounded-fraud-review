@@ -21,3 +21,7 @@ ollama:
 server:
   host: 127.0.0.1
   port: 8000
+
+workflow:
+  enabled: true
+  database_path: var/dashboard/workflow.sqlite3

@@ -25,6 +25,9 @@ ollama:
 server:
   host: 127.0.0.1
   port: 8000
+workflow:
+  enabled: true
+  database_path: var/dashboard/workflow.sqlite3
 """
 
 
@@ -54,4 +57,28 @@ def test_settings_forbid_unplanned_fields(tmp_path: Path):
     path = tmp_path / "dashboard.yaml"
     path.write_text(BASE + "browser_selectable_path: true\n")
     with pytest.raises(ValueError, match="browser_selectable_path|extra"):
+        DashboardSettings.load(path, repo_root=tmp_path)
+
+
+@pytest.mark.parametrize(
+    "database_path",
+    [
+        "experiments/workflow.sqlite3",
+        "reports/workflow.sqlite3",
+        "../workflow.sqlite3",
+        "var/dashboard/workflow-*.sqlite3",
+    ],
+)
+def test_settings_keep_workflow_database_separate_and_exact(
+    tmp_path: Path,
+    database_path: str,
+):
+    path = tmp_path / "dashboard.yaml"
+    path.write_text(
+        BASE.replace(
+            "var/dashboard/workflow.sqlite3",
+            database_path,
+        )
+    )
+    with pytest.raises(ValueError, match="workflow|glob|escapes"):
         DashboardSettings.load(path, repo_root=tmp_path)

@@ -20,8 +20,19 @@ from app.backend.artifacts import (
 )
 from app.backend.attack_presets import run_attack
 from app.backend.live import LiveNarrativeService
-from app.backend.schemas import GuardrailDemoRequest, LiveNarrativeRequest
+from app.backend.schemas import (
+    GuardrailDemoRequest,
+    LiveNarrativeRequest,
+    WorkflowUpdateRequest,
+)
 from app.backend.settings import DashboardSettings
+from app.backend.workflow import (
+    WorkflowConflictError,
+    WorkflowEvidenceMismatchError,
+    WorkflowStore,
+    WorkflowTransitionError,
+    evidence_fingerprint,
+)
 from src.provenance import sha256_file
 
 
@@ -100,6 +111,7 @@ def create_app(
     snapshot: DashboardSnapshot | None = None,
     *,
     live_service: LiveNarrativeService | None = None,
+    workflow_store: WorkflowStore | None = None,
     require_frontend: bool = True,
 ) -> FastAPI:
     snapshot = snapshot or load_snapshot(settings)
@@ -109,10 +121,13 @@ def create_app(
             f"frontend production build is missing; run: {BUILD_COMMAND}"
         )
     live = live_service or LiveNarrativeService(settings, snapshot)
+    workflow = workflow_store or WorkflowStore(settings.workflow_database)
+    fingerprint = evidence_fingerprint(snapshot.public_provenance())
     app = FastAPI(title="Fraud Detection FYP Demo", version="1.0.0")
     app.state.settings = settings
     app.state.snapshot = snapshot
     app.state.live = live
+    app.state.workflow = workflow
 
     @app.exception_handler(RequestValidationError)
     async def validation_error(_request: Request, error: RequestValidationError):
@@ -141,6 +156,7 @@ def create_app(
             "artifact_ready": True,
             "frontend_build_version": _frontend_version(dist),
             "ollama_status": live.availability(),
+            "workflow_status": "ready",
         }
 
     @app.get("/api/v1/provenance")
@@ -187,6 +203,89 @@ def create_app(
             raise HTTPException(
                 status_code=404,
                 detail={"code": "case_not_found", "message": str(error)},
+            ) from error
+
+    @app.get("/api/v1/workflow/summary")
+    def workflow_summary():
+        case_ids = list(snapshot.cases)
+        items = workflow.list(case_ids, fingerprint)
+        counts = {status: 0 for status in (
+            "unreviewed",
+            "in_review",
+            "needs_follow_up",
+            "review_complete",
+        )}
+        for item in items:
+            counts[item["status"]] += 1
+        return {
+            "total": len(case_ids),
+            "counts": counts,
+            "recorded_fallback": sum(
+                1 for case in snapshot.cases.values() if case.narrative.fallback
+            ),
+            "evidence_fingerprint": fingerprint,
+        }
+
+    @app.get("/api/v1/workflow/cases")
+    def workflow_cases():
+        return {
+            "items": workflow.list(snapshot.cases, fingerprint),
+            "total": len(snapshot.cases),
+        }
+
+    @app.get("/api/v1/workflow/cases/{case_id}")
+    def workflow_case(case_id: int):
+        try:
+            snapshot.case(case_id)
+        except KeyError as error:
+            raise HTTPException(
+                status_code=404,
+                detail={"code": "case_not_found", "message": str(error)},
+            ) from error
+        return workflow.get(case_id, fingerprint)
+
+    @app.get("/api/v1/workflow/cases/{case_id}/activity")
+    def workflow_activity(case_id: int):
+        try:
+            snapshot.case(case_id)
+        except KeyError as error:
+            raise HTTPException(
+                status_code=404,
+                detail={"code": "case_not_found", "message": str(error)},
+            ) from error
+        return {"items": workflow.activity(case_id)}
+
+    @app.put("/api/v1/workflow/cases/{case_id}")
+    def update_workflow_case(case_id: int, request: WorkflowUpdateRequest):
+        try:
+            snapshot.case(case_id)
+            return workflow.update(
+                case_id=case_id,
+                expected_revision=request.revision,
+                status=request.status,
+                disposition=request.disposition,
+                note=request.note,
+                current_fingerprint=fingerprint,
+            )
+        except KeyError as error:
+            raise HTTPException(
+                status_code=404,
+                detail={"code": "case_not_found", "message": str(error)},
+            ) from error
+        except WorkflowConflictError as error:
+            raise HTTPException(
+                status_code=409,
+                detail={"code": "workflow_revision_conflict", "message": str(error)},
+            ) from error
+        except WorkflowEvidenceMismatchError as error:
+            raise HTTPException(
+                status_code=409,
+                detail={"code": "workflow_evidence_mismatch", "message": str(error)},
+            ) from error
+        except WorkflowTransitionError as error:
+            raise HTTPException(
+                status_code=422,
+                detail={"code": "invalid_workflow_transition", "message": str(error)},
             ) from error
 
     @app.get("/api/v1/results")

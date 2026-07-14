@@ -31,6 +31,22 @@ class GuardrailDemoRequest(StrictRequest):
     ]
 
 
+class WorkflowUpdateRequest(StrictRequest):
+    revision: int = Field(ge=0)
+    status: Literal[
+        "unreviewed",
+        "in_review",
+        "needs_follow_up",
+        "review_complete",
+    ]
+    disposition: Literal[
+        "suspicious",
+        "not_suspicious",
+        "inconclusive",
+    ] | None = None
+    note: str = Field(default="", max_length=2000)
+
+
 def check_states(checks: dict[str, bool] | None) -> dict[str, str]:
     keys = ("format", "completeness", "grounding", "direction")
     if checks is None:
