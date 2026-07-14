@@ -1,11 +1,12 @@
 # Independent implementation review — 2026-07-14
 
-Verdict: **COMMENT** — the committed detector→G4→G5→results pipeline is provenance-valid with no confirmed BLOCKER or MAJOR finding; one confirmed MINOR false-rejection boundary remains, and the dashboard implementation was not yet committed enough for Review F.
+Verdict: **COMMENT** — the committed detector→G4→G5→results pipeline and React/FastAPI dashboard are provenance-valid with no open BLOCKER or MAJOR finding. The dashboard exact-artifact integration is cleared; one confirmed MINOR validator false-rejection boundary remains.
 
-- Review baseline: `6dd766aab32f364193975707f8ef5286ef30bf81`
+- Pipeline review baseline: `6dd766aab32f364193975707f8ef5286ef30bf81`
+- Dashboard review baseline: `b15aed586101a59813b73e924c2a8bd31f47e619`
 - Reviewer role: independent adversarial Codex review; no experiment artifact was modified or regenerated.
-- Architectural status: **WATCH** because the validator deliberately implements a closed accepted-language grammar and because Task 7.4 production-path review remains pending.
-- Recommendation: **COMMENT**. The current pipeline is suitable for report drafting if the limitation below is stated explicitly. Do not claim the dashboard is the same evaluated system until its exact-artifact integration review passes.
+- Architectural status: **WATCH** for the overall project because the validator deliberately implements a closed accepted-language grammar. Dashboard architectural status: **CLEAR** after exact-artifact, read-only, recorded/live-separation, and production-route verification.
+- Recommendation: **COMMENT**. The implementation is suitable for report drafting and examiner rehearsal if the validator limitation and remaining human-only work are stated explicitly.
 
 ## Findings
 
@@ -65,6 +66,13 @@ None.
 
 - Evidence: A direct `uv run python` call against the final G4 record reproduced both results. The same probe accepted the canonical recorded strict output and the safe phrase `all raise risk`. The calibration artifact correctly scopes its `0/318` false-rejection result to the synthetic versioned corpus, so this does not falsify that logged number; it demonstrates an out-of-corpus language boundary.
 - Minimal repair direction: Keep fail-closed delivery. Either add these paraphrase families to a new versioned faithful-control corpus and extend the closed grammar before any future G5 rerun, or retain the current validator and state that it verifies a deliberately restricted narrative language rather than arbitrary semantically equivalent English. No current result needs regeneration if the implementation is unchanged.
+
+## Resolved during dashboard review
+
+These were confirmed during Review F and fixed before the dashboard baseline above; they are not open findings.
+
+1. **Closed provenance drawer retained a hidden keyboard target.** `app/frontend/src/components/AppShell.tsx` now makes the closed drawer `inert`, and `app/frontend/e2e/dashboard.spec.ts` proves that the attribute is removed only while the drawer is open.
+2. **Dashboard configuration accepted more loopback hosts than the evaluated Ollama client.** `app/backend/settings.py` now reuses `src.narratives.llm_client.assert_local_ollama_host()`, and `tests/dashboard_backend/test_settings.py` rejects the previously accepted `127.0.0.2` mismatch.
 
 ## Additional guardrail probes
 
@@ -130,15 +138,22 @@ The fallback text was deterministic and was rebuilt from the bound G4 record's r
 ### F — Dashboard and claim boundaries
 
 - The committed `configs/dashboard.yaml` pins exact detector/G4/G5/results paths and loopback hosts. The selected faithful case (`42009`) is a recorded accepted strict narrative; the uncertainty case (`120085`) is the detector's single seed-42 false positive; the attack case is intended for deterministic mutation.
-- The FastAPI artifact adapter, APIs, React production build, no-write proof, and exact-artifact smoke were not committed at this review baseline. No same-system, production-ready, real-time, or dashboard privacy claim is approved by this review.
-- Approved wording remains **privacy-conscious local deployment** with data minimization. `privacy-preserving` is unsupported as a proved property.
+- `tools/validate_dashboard.py --config configs/dashboard.yaml` loaded 51 cases and 3 predicate-validated scenarios and verified the exact G6 seed-42 → G4 → G5 → Task 7.1 source chain.
+- The production FastAPI build started on `127.0.0.1:8000`. Real-browser smoke covered Queue, Investigation, Guardrail Lab, Results, and a direct `/cases/42009` refresh. Detector and G4/G5 result stages remained visibly separate.
+- A real live API call returned `mode=live_demo`, `reported=false`, four `PASS` checks, and `Cache-Control: no-store`. A later real-browser call exercised the transport-unavailable path and displayed deterministic fallback with four `NOT_RUN` checks rather than treating the outage as a validation failure.
+- All three real server-side attack presets triggered the intended check (`direction`, `grounding`, `format`) and deterministic fallback through `src.narratives.guardrails.validate_narrative`.
+- A before/after SHA-256 and nanosecond-mtime audit covered 21 configured detector/G4/G5/results/table/figure files across every GET, live POST, and attack POST; no file changed. Ten public JSON responses were also scanned without exposing an absolute repository path.
+- The displayed live evidence payload contained only case ID, coarse risk, feature names, direction, and rank; it excluded the detector score/probability, historical label, exact values, and SHAP magnitudes.
+- Approved wording is **exact-artifact local demonstration prototype** and **privacy-conscious local deployment with data minimization**. `privacy-preserving`, `production-ready`, and `real-time deployed` remain unsupported.
 
 ### G — Tests and completeness
 
-- `uv run pytest $(git ls-files 'tests/test_*.py') -q` passed: 146 tests, 11 dependency deprecation warnings.
+- `uv run pytest -q` passed: 168 tests, 12 dependency deprecation warnings.
+- Dashboard-specific verification passed: 20 FastAPI/backend tests, 2 Vitest component tests, 8 Playwright E2E tests, ESLint with zero warnings, TypeScript/Vite production build, and the exact dashboard validator.
+- Playwright covers all three attacks, live success, transport fallback with four `NOT_RUN` states, deep-link refresh, detector/explanation stage separation, keyboard route navigation, closed-drawer focus exclusion, and rejection of non-loopback browser traffic.
 - No committed `xfail` or `skip` was observed in the reviewed test set.
 - Critical negative contracts exist for split IDs, threshold indexing, G4 joins, G5 final-run invariants, forged G5 semantics, source hashes, local Ollama endpoints, audit reconstruction, results allowlisting, and output hash changes.
-- Task 7.4 remains outside the completed scope; its tests must be reviewed after implementation rather than inferred from the specification.
+- Task 7.4 implementation and production-path review are complete. Projector-room readability and three human timed rehearsals remain presentation preparation rather than missing code.
 
 ## Accepted false positives and contract-based rebuttals
 
@@ -150,7 +165,12 @@ The fallback text was deterministic and was rebuilt from the bound G4 record's r
 ## Tested commands
 
 ```bash
-uv run pytest $(git ls-files 'tests/test_*.py') -q
+uv run pytest -q
+uv run python tools/validate_dashboard.py --config configs/dashboard.yaml
+npm --prefix app/frontend test
+npm --prefix app/frontend run lint
+npm --prefix app/frontend run build
+npm --prefix app/frontend run e2e
 ```
 
 Read-only Python verification also executed:
@@ -161,18 +181,19 @@ Read-only Python verification also executed:
 - `validate_reportable_g5_run('experiments/runs/2026-07-14_g5_seed42')`;
 - `assert_calibration_gate()` against the final G4 feature vocabulary;
 - current-source and recorded-commit source hash comparisons for sampled G0/G6/G4/G5 manifests;
-- direct `validate_narrative()` probes listed above.
+- direct `validate_narrative()` probes listed above;
+- production HTTP/browser route smoke, data-minimization inspection, all three attack presets, live success/fallback, public-path scan, and 21-file hash/mtime no-write audit.
 
 ## Untested areas and why
 
 - Full-data retraining was prohibited by the review charter; saved artifacts, manifests, unit tests, and recomputation were used instead.
-- A fresh Ollama generation was not run because the final G5 immutable output and pinned runtime identity already existed; transport/payload behavior was checked through committed tests and source inspection.
 - Human audit scoring was not run because the audit columns are intentionally blank and may only be filled by humans.
-- Dashboard backend/frontend production-path checks were not run because the implementation was not committed at the review baseline.
+- Projector-room readability and three complete timed examiner rehearsals require the student's presentation setup and remain pending.
+- Claude review was authorized but could not run because the local Claude CLI had no authenticated session or `ANTHROPIC_API_KEY`; native adversarial review and executable verification were used instead.
 - No external citation or literature novelty review was performed in this code-review task.
 
 ## Count
 
 - BLOCKER: 0 confirmed, 0 suspected
 - MAJOR: 0 confirmed, 0 suspected
-- MINOR: 1 confirmed, 0 suspected
+- MINOR: 1 open confirmed, 0 suspected; 2 dashboard findings confirmed and resolved before the dashboard review baseline.

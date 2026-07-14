@@ -42,8 +42,8 @@ This file is the claim ledger for the CP2 report. A claim may enter the report o
 
 | ID | Planned report claim | Exact supporting evidence | Status and permitted wording |
 |---|---|---|---|
-| C1 | The React/FastAPI demo consumes the exact evaluated detector/G4/G5/results artifacts. | `configs/dashboard.yaml`; future `tools/validate_dashboard.py` output and production exact-artifact smoke | PENDING until Task 7.4 is implemented, reviewed, and the exact-artifact smoke passes. |
-| C2 | Live replay sends the same minimized evidence to local Ollama and never persists output. | Future dashboard API payload and before/after hash/mtime tests | PENDING. Do not infer from the dashboard specification. |
+| C1 | The React/FastAPI demo consumes the exact evaluated detector/G4/G5/results artifacts. | `configs/dashboard.yaml`; `tools/validate_dashboard.py`; `tests/dashboard_backend/`; `app/frontend/e2e/dashboard.spec.ts`; `docs/reviews/2026-07-14-implementation-review.md` | SUPPORTED as an exact configured-demo claim. The validator loaded 51 cases and 3 curated scenarios from the verified G6 seed-42 → G4 → G5 → Task 7.1 chain, and the production four-route/deep-link smoke passed. Do not call this a deployed production system. |
+| C2 | Live replay sends the same minimized evidence to local Ollama and does not persist output to the configured experiment/report artifacts. | `app/backend/live.py`; `src/narratives/evidence.py`; `tests/dashboard_backend/test_live.py`; production API payload and before/after hash/mtime audit in the implementation review | SUPPORTED as a code/test/production-smoke claim. The live response is `demo-only`, uses `Cache-Control: no-store`, and a real all-endpoint audit left all 21 configured artifact files unchanged. This is not a formal privacy proof. |
 | C3 | The system is privacy-preserving. | No artifact proves a formal privacy property. | DROP. Replace with `privacy-conscious local deployment` or `locally deployed explanation architecture with data minimization`. |
 | C4 | The detector is production-ready, real-time, or clinically/financially deployed. | No deployment study, load test, prospective data, or analyst trial exists. | DROP. Present the dashboard as a local demonstration prototype. |
 | C5 | Within the reviewed literature that we identified, this is an evaluated fraud-specific narrative layer combining local generation, deterministic evidence guardrails, paired OFF/ON measurement, adversarial calibration, and deterministic fallback. | CP1/updated literature matrix plus G5 artifacts and implementation review | PENDING LITERATURE VERIFICATION. Use the full qualified wording only after every cited paper is checked. Never write a bare `first`. |
@@ -71,4 +71,4 @@ This file is the claim ledger for the CP2 report. A claim may enter the report o
 - SHAP is described as model attribution, not causation.
 - The audit rate remains absent until human-attested scoring exists.
 - Novelty language remains qualified by the reviewed literature.
-- Dashboard claims remain pending until production-path validation exists.
+- Dashboard claims are limited to the exact-artifact, data-minimization, and non-persistence properties verified by the production-path review; no deployment or formal privacy claim is permitted.
