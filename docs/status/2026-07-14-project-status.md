@@ -55,12 +55,14 @@ It is intentionally not described as production-ready, bank-deployed, real-time 
 - Playwright browser suite: **10 passed**.
 - ESLint: zero warnings.
 - TypeScript + Vite production build: passed.
+- The actual narrow right-side in-app preview was visually checked after the final build; navigation, queue filters, workflow counts, and horizontal table scrolling remain usable.
 - Exact dashboard validator: valid, 51 cases, verified G6 seed-42 → G4 → G5 → Task 7.1 source chain.
 - Workflow no-write regression hashes and checks mtimes for **21 configured research artifacts**.
 - Implementation commits:
   - `4ca8408` — local analyst workflow store;
   - `210bfb4` — analyst Fraud Review Workbench;
   - `d20b33a` — blind operational workflow and final ground-truth boundary repair.
+  - `eda7794` — responsive repair for the narrow in-app preview.
 
 ## Research progress already complete
 
