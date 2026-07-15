@@ -203,7 +203,10 @@ export function Investigation() {
       }
     } catch (error) {
       setWorkflowError(error instanceof Error ? error : new Error("Workflow could not be saved."));
-      if (error instanceof ApiError && error.code === "workflow_revision_conflict") {
+      if (
+        error instanceof ApiError
+        && ["workflow_revision_conflict", "workflow_evidence_mismatch"].includes(error.code ?? "")
+      ) {
         setWorkflowOverride(undefined);
       }
       workflowRemote.reload();

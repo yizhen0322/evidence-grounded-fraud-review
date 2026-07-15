@@ -106,7 +106,7 @@ The default page contains:
 - filters for risk bucket, workflow state, and recorded narrative state;
 - a dense table with risk, case ID, model score, explanation delivery, top reason, workflow state, and action.
 
-The operational queue does not display `y_true`, historical outcome, G0–G7 labels, or research scenario cards. Curated demo paths may remain available in a secondary disclosure for rehearsals.
+The operational queue does not display `y_true`, historical outcome, G0–G7 labels, or research scenario cards. Controlled attack shortcuts remain only inside Model Assurance; the curated false-positive case is not exposed through the public scenario API.
 
 ## 7. Investigation Workspace
 

@@ -16,10 +16,11 @@ def test_health_provenance_and_scenarios_are_public_safe(api_client):
 
     scenarios = api_client.get("/api/v1/demo-scenarios")
     assert scenarios.status_code == 200
-    assert {row["case_id"] for row in scenarios.json()["scenarios"]} == {
-        42009,
-        120085,
-    }
+    rows = scenarios.json()["scenarios"]
+    assert {row["case_id"] for row in rows} == {42009}
+    assert all(row.get("kind") != "error" for row in rows)
+    assert "ground truth" not in str(rows).lower()
+    assert "false positive" not in str(rows).lower()
 
 
 def test_cases_are_sorted_and_exclude_historical_ground_truth(api_client):

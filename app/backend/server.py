@@ -165,7 +165,13 @@ def create_app(
 
     @app.get("/api/v1/demo-scenarios")
     def scenarios():
-        return {"scenarios": [dict(item) for item in snapshot.scenarios]}
+        return {
+            "scenarios": [
+                dict(item)
+                for item in snapshot.scenarios
+                if item.get("kind") != "error" and item.get("key") != "error"
+            ]
+        }
 
     @app.get("/api/v1/cases")
     def cases(

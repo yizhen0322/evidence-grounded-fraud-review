@@ -2,10 +2,9 @@ import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { api } from "../api/client";
 import { normalizeCases } from "../api/normalize";
-import type { CaseDetail, DemoScenario, ReasonCode, WorkflowRecord, WorkflowStatus } from "../api/types";
+import type { CaseDetail, ReasonCode, WorkflowRecord, WorkflowStatus } from "../api/types";
 import { ArrowIcon, SearchIcon } from "../components/icons";
 import { EmptyState, ErrorState, LoadingState } from "../components/PageState";
-import { useDemoContext } from "../components/DemoContext";
 import { WorkflowBadge } from "../components/StatusBadge";
 import { useRemoteData } from "../components/useRemoteData";
 
@@ -47,27 +46,12 @@ function dateLabel(value: string | null): string {
   }).format(new Date(value));
 }
 
-function ScenarioShortcut({ scenario, open }: { scenario: DemoScenario; open: (scenario: DemoScenario) => void }) {
-  return (
-    <button className="scenario-shortcut" onClick={() => open(scenario)} type="button">
-      <span className={`scenario-index is-${scenario.kind ?? scenario.key ?? "case"}`} aria-hidden="true" />
-      <span>
-        <strong>{scenario.title ?? scenario.label ?? "Curated case"}</strong>
-        <small>Case {scenario.case_id}</small>
-      </span>
-      <p>{scenario.description}</p>
-      <ArrowIcon />
-    </button>
-  );
-}
-
 export function CaseQueue() {
   const [params, setParams] = useSearchParams();
   const [search, setSearch] = useState("");
   const [actionError, setActionError] = useState<Error>();
   const [startingCase, setStartingCase] = useState<number>();
   const navigate = useNavigate();
-  const { scenarios } = useDemoContext();
   const riskBucket = params.get("risk_bucket") ?? "";
   const recordedFallback = params.get("recorded_fallback") ?? "";
   const workflowStatus = params.get("workflow_status") ?? "";
@@ -107,14 +91,6 @@ export function CaseQueue() {
     if (value) next.set(key, value);
     else next.delete(key);
     setParams(next, { replace: true });
-  };
-
-  const openScenario = (scenario: DemoScenario) => {
-    if (scenario.kind === "attack" || scenario.key === "attack") {
-      navigate(`/assurance/narratives?case_id=${scenario.case_id}`);
-    } else {
-      navigate(`/cases/${scenario.case_id}`);
-    }
   };
 
   const openCase = async (caseId: number, workflow: WorkflowRecord) => {
@@ -279,18 +255,6 @@ export function CaseQueue() {
           </div>
         ) : null}
       </section>
-
-      {scenarios.length > 0 ? (
-        <details className="demo-paths">
-          <summary>Validated examiner paths</summary>
-          <p>Secondary shortcuts for rehearsing a faithful case, a real evaluation error, and a controlled guardrail attack.</p>
-          <div className="scenario-list">
-            {scenarios.map((scenario) => (
-              <ScenarioShortcut key={`${scenario.key ?? scenario.kind}-${scenario.case_id}`} scenario={scenario} open={openScenario} />
-            ))}
-          </div>
-        </details>
-      ) : null}
     </div>
   );
 }

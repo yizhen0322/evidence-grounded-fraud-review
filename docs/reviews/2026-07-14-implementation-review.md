@@ -93,6 +93,8 @@ An independent product implementation review initially found four MAJOR workflow
 3. `y_true`, retrospective outcome text, and the historical-label filter were removed from operational API responses and UI.
 4. Completed reviews can no longer be rewritten while remaining complete; they must transition through explicit reopen first.
 
+A final re-review identified and resolved one remaining public-boundary leak: the curated false-positive scenario was still described through `/api/v1/demo-scenarios` and displayed in the queue. Operational scenario cards were removed, and the public scenario response now excludes the evaluation-error case and any ground-truth wording. Evidence-mismatch conflicts also clear stale frontend overrides before reload, matching revision-conflict recovery.
+
 ## Additional guardrail probes
 
 No unfaithful bypass was found in the additional case-`83417` probes. All of the following produced `fallback=true`:
