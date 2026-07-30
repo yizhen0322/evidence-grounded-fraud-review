@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { api } from "../api/client";
-import type { AttackPreset, GuardrailDemoResponse } from "../api/types";
+import { normalizeCases } from "../api/normalize";
+import type { AttackPreset, CaseDetail, DemoScenario, GuardrailDemoResponse } from "../api/types";
 import { useDemoContext } from "../components/DemoContext";
 import { AlertIcon, ArrowIcon, RefreshIcon, ShieldIcon } from "../components/icons";
 import { GuardrailBadges } from "../components/StatusBadge";
+import { useRemoteData } from "../components/useRemoteData";
 
 const PRESETS: Array<{
   value: AttackPreset;
@@ -16,82 +18,119 @@ const PRESETS: Array<{
     value: "direction_flip",
     label: "Direction flip",
     detail: "Reverse one recorded contribution direction.",
-    expected: "Direction must FAIL",
+    expected: "Expected: direction check fails",
   },
   {
     value: "unlisted_feature",
     label: "Unlisted feature",
     detail: "Inject a feature absent from this case evidence.",
-    expected: "Grounding must FAIL",
+    expected: "Expected: evidence check fails",
   },
   {
     value: "template_corruption",
     label: "Template corruption",
     detail: "Remove or rename a required narrative section.",
-    expected: "Format must FAIL",
+    expected: "Expected: format check fails",
   },
 ];
+
+type AssuranceMode = "operational" | "research";
+type SelectableCase = Pick<DemoScenario, "case_id" | "description"> & { label?: string };
+
+function queryMode(params: URLSearchParams): AssuranceMode {
+  return params.get("mode") === "research" ? "research" : "operational";
+}
+
+function operationalOption(item: CaseDetail): SelectableCase {
+  return {
+    case_id: item.case_id,
+    label: item.transaction_id ? `Transaction ${item.transaction_id}` : `Case ${item.case_id}`,
+    description: item.readable_top_signal ?? item.top_reasons?.[0]?.display_label ?? "S0 semantic case",
+  };
+}
 
 export function GuardrailLab() {
   const { scenarios } = useDemoContext();
   const [params, setParams] = useSearchParams();
+  const assuranceMode = queryMode(params);
+  const queryCaseId = params.get("case_id");
   const attackCase = scenarios.find((item) => item.kind === "attack" || item.key === "attack");
   const [caseId, setCaseId] = useState(() => Number(params.get("case_id") ?? attackCase?.case_id ?? 42009));
   const [preset, setPreset] = useState<AttackPreset>("direction_flip");
   const [result, setResult] = useState<GuardrailDemoResponse>();
   const [error, setError] = useState<Error>();
   const [loading, setLoading] = useState(false);
+  const operationalCases = useRemoteData(
+    () => assuranceMode === "operational" ? api.operationalCases({ limit: 200 }) : Promise.resolve({ items: [], total: 0 }),
+    [assuranceMode],
+  );
   const selectedPreset = useMemo(() => PRESETS.find((item) => item.value === preset)!, [preset]);
   const availableCases = useMemo(() => {
+    if (assuranceMode === "operational") {
+      const operational = normalizeCases(operationalCases.data ?? { items: [], total: 0 }).items.map(operationalOption);
+      return operational.length > 0 ? operational : [{ case_id: caseId || 9001, description: "S0 semantic case" }];
+    }
     const candidates = scenarios.filter((item) =>
       item.kind === "attack" || item.kind === "faithful" || item.key === "attack" || item.key === "faithful",
     );
     const unique = [...new Map(candidates.map((item) => [item.case_id, item])).values()];
     return unique.length > 0 ? unique : [{ case_id: 42009, description: "Verified attack-compatible case" }];
-  }, [scenarios]);
+  }, [assuranceMode, caseId, operationalCases.data, scenarios]);
 
   useEffect(() => {
-    if (!params.get("case_id") && attackCase) setCaseId(attackCase.case_id);
-  }, [attackCase, params]);
+    if (queryCaseId) {
+      const requestedCase = Number(queryCaseId);
+      if (Number.isFinite(requestedCase) && requestedCase !== caseId) {
+        setCaseId(requestedCase);
+        setResult(undefined);
+      }
+      return;
+    }
+    const nextCase = assuranceMode === "operational"
+      ? availableCases[0]?.case_id
+      : attackCase?.case_id;
+    if (nextCase !== undefined) setCaseId(nextCase);
+  }, [assuranceMode, attackCase, availableCases, caseId, queryCaseId]);
 
   const runValidation = async () => {
     setLoading(true);
     setError(undefined);
     try {
-      setResult(await api.guardrailDemo(caseId, preset));
+      setResult(await (assuranceMode === "operational" ? api.operationalGuardrailDemo : api.guardrailDemo)(caseId, preset));
     } catch (reason) {
-      setError(reason instanceof Error ? reason : new Error("The deterministic validator demo could not run."));
+      setError(reason instanceof Error ? reason : new Error("The validation test could not run."));
     } finally {
       setLoading(false);
     }
   };
 
   const reset = () => {
-    const nextCase = attackCase?.case_id ?? 42009;
+    const nextCase = assuranceMode === "operational" ? availableCases[0]?.case_id ?? 9001 : attackCase?.case_id ?? 42009;
     setCaseId(nextCase);
     setPreset("direction_flip");
     setResult(undefined);
     setError(undefined);
-    setParams({ case_id: String(nextCase) }, { replace: true });
+    setParams(assuranceMode === "operational" ? { mode: "operational", case_id: String(nextCase) } : { mode: "research", case_id: String(nextCase) }, { replace: true });
   };
+  const caseRoutePrefix = assuranceMode === "operational" ? "/operational/cases" : "/research/cases";
 
   return (
     <div className="route-page route-enter">
       <section className="page-heading guardrail-heading">
         <div>
-          <span className="eyebrow">Model Assurance</span>
-          <h1>Narrative Assurance</h1>
-          <p>Controlled policy tests use recorded evidence and the real <code>validate_narrative()</code> implementation.</p>
+          <span className="eyebrow">{assuranceMode === "operational" ? "Operational semantic assurance" : "Research benchmark assurance"}</span>
+          <h1>Explanation Assurance</h1>
+          <p>{assuranceMode === "operational" ? "Test whether a structured local-LLM brief remains faithful to readable S0 model evidence before an analyst receives it." : "Test whether a local-LLM brief remains grounded in the ULB benchmark's anonymous SHAP evidence before delivery."}</p>
         </div>
         <div className="lab-principle">
           <ShieldIcon size={24} />
-          <span><strong>Fail closed, then fall back</strong><small>Assurance testing · not a reported G5 run.</small></span>
+          <span><strong>Fail closed, then fall back</strong><small>Temporary tests do not alter case evidence.</small></span>
         </div>
       </section>
 
       <section aria-label="Narrative assurance boundary" className="assurance-ledger">
-        <div><span>Validator</span><strong>Real source implementation</strong></div>
-        <div><span>Evidence</span><strong>Recorded and provenance-bound</strong></div>
+        <div><span>Validator</span><strong>{assuranceMode === "operational" ? "S0 structured validator" : "Active validation policy"}</strong></div>
+        <div><span>Evidence</span><strong>{assuranceMode === "operational" ? "Verified S0 semantic evidence" : "Verified research case evidence"}</strong></div>
         <div><span>Delivery policy</span><strong>Reject → reason-code fallback</strong></div>
         <div><span>Persistence</span><strong>Controlled mutations are not saved</strong></div>
       </section>
@@ -103,18 +142,18 @@ export function GuardrailLab() {
             <span className="stage-number">01</span>
           </div>
           <label className="control-field">
-            <span>Attack-compatible case</span>
+            <span>Test case</span>
             <select value={caseId} onChange={(event) => {
               const value = Number(event.target.value);
               setCaseId(value);
-              setParams({ case_id: String(value) }, { replace: true });
+              setParams(assuranceMode === "operational" ? { mode: "operational", case_id: String(value) } : { mode: "research", case_id: String(value) }, { replace: true });
               setResult(undefined);
             }}>
-              {availableCases.map((item) => <option key={item.case_id} value={item.case_id}>Case {item.case_id}</option>)}
+              {availableCases.map((item) => <option key={item.case_id} value={item.case_id}>{item.label ?? `Case ${item.case_id}`}</option>)}
             </select>
           </label>
           <fieldset className="preset-fieldset">
-            <legend>Mutation preset</legend>
+            <legend>Test condition</legend>
             {PRESETS.map((item, index) => (
               <label className={preset === item.value ? "preset-option is-selected" : "preset-option"} key={item.value}>
                 <input
@@ -135,7 +174,7 @@ export function GuardrailLab() {
             </button>
             <button className="button text-button" onClick={reset} type="button"><RefreshIcon /> Reset</button>
           </div>
-          <p className="control-footnote">The browser submits only <code>case_id</code> and an allowlisted preset. This assurance path cannot accept arbitrary text.</p>
+          <p className="control-footnote">Only approved test conditions can be run. Free-form text is not accepted on this screen.</p>
         </aside>
 
         <section className="lab-output" aria-labelledby="lab-output-title">
@@ -147,7 +186,7 @@ export function GuardrailLab() {
             <div className="lab-awaiting">
               <div className="lab-glyph" aria-hidden="true"><span /><span /><span /></div>
               <strong>{selectedPreset.label} is ready</strong>
-              <p>Run the preset to compare the faithful recorded text with its deterministic mutation.</p>
+              <p>Run the test to compare the verified explanation with a controlled modification.</p>
             </div>
           ) : null}
           {error ? (
@@ -157,17 +196,17 @@ export function GuardrailLab() {
             <div className="lab-result" aria-live="polite">
               <div className="comparison-grid">
                 <article>
-                  <span className="comparison-label is-original">Original faithful narrative</span>
+                  <span className="comparison-label is-original">{assuranceMode === "operational" ? "Verified structured candidate" : "Verified explanation"}</span>
                   <pre>{result.original_text}</pre>
                 </article>
                 <article>
-                  <span className="comparison-label is-tampered">Tampered narrative · {selectedPreset.label}</span>
+                  <span className="comparison-label is-tampered">Modified explanation · {selectedPreset.label}</span>
                   <pre>{result.tampered_text}</pre>
                 </article>
               </div>
               <div className="validator-verdict">
                 <div>
-                  <span className="eyebrow">Real validator decision</span>
+                  <span className="eyebrow">Policy decision</span>
                   <h3>{result.fallback ? "Rejected → fallback active" : "Unexpectedly accepted"}</h3>
                   <p>{result.fallback_reason?.replaceAll("_", " ") ?? "Four independent checks were recomputed."}</p>
                 </div>
@@ -176,11 +215,12 @@ export function GuardrailLab() {
                 </span>
               </div>
               <GuardrailBadges checks={result.checks} reasons={result.check_reasons ?? result.failure_reasons} />
+              {result.validator ? <p className="control-footnote">Validator: <code>{result.validator}</code></p> : null}
               <div className="fallback-output">
                 <AlertIcon />
                 <div><strong>Deterministic fallback delivered</strong><p>{result.final_text}</p></div>
               </div>
-              <Link className="inline-link" to={`/cases/${result.case_id}`}>Return to Investigation Workspace <ArrowIcon size={14} /></Link>
+              <Link className="inline-link" to={`${caseRoutePrefix}/${result.case_id}`}>Return to {assuranceMode === "operational" ? "operational" : "research"} case investigation <ArrowIcon size={14} /></Link>
             </div>
           ) : null}
         </section>

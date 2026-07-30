@@ -6,6 +6,7 @@
 - **Who it is for:** A single fraud analyst, with model-risk reviewers and FYP examiners as secondary users.
 - **Project type:** Dense desktop operational workbench with a separate assurance area.
 - **Memorable quality:** This feels like a system an analyst works in every day, not a model demonstration page.
+- **Default experience:** S0 operational simulation cases with readable evidence and a visible deterministic-versus-local-LLM comparison. ULB remains available as the real-data detector benchmark in the same application.
 
 ## Aesthetic direction
 
@@ -75,3 +76,4 @@ Colour is semantic. No gradients or decorative multi-colour surfaces.
 | 2026-07-14 | Split immutable evidence from mutable local workflow metadata | Makes the prototype operational without contaminating experiment artifacts. |
 | 2026-07-14 | Operations and Model Assurance are separate navigation groups | Keeps analyst work primary while preserving the research contribution. |
 | 2026-07-14 | Historical ground truth is excluded from operational APIs and screens | Prevents hindsight leakage and makes the workflow credible. Aggregate retrospective results remain in Model Assurance. |
+| 2026-07-26 | S0 is the default operational and semantic evaluation context; ULB remains the detector benchmark | Readable S0 evidence makes the local-LLM contract observable without weakening the real-data detector evidence or comparing incompatible score scales. |

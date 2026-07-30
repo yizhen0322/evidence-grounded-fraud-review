@@ -1,0 +1,307 @@
+{
+  "status": "interim_pilot_below_pre_specified_minimum",
+  "target_completed_participants": 30,
+  "pre_specified_minimum_if_recruitment_interrupted": 18,
+  "responses_observed": 11,
+  "participants_included": 11,
+  "participants_excluded": 0,
+  "included_response_numbers": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11
+  ],
+  "excluded_responses": [],
+  "completed_case_reviews": 99,
+  "condition_summaries": {
+    "raw_reason_codes": {
+      "label": "Raw reason codes",
+      "participants": 11,
+      "task_responses": 33,
+      "accuracy": {
+        "top_evidence": {
+          "successes": 28,
+          "n": 33,
+          "rate": 0.8484848484848485,
+          "ci95_lower": 0.6907978686153953,
+          "ci95_upper": 0.9334964074203904
+        },
+        "direction": {
+          "successes": 28,
+          "n": 33,
+          "rate": 0.8484848484848485,
+          "ci95_lower": 0.6907978686153953,
+          "ci95_upper": 0.9334964074203904
+        },
+        "evidence_count": {
+          "successes": 30,
+          "n": 33,
+          "rate": 0.9090909090909091,
+          "ci95_lower": 0.7642705646564897,
+          "ci95_upper": 0.968596628950737
+        }
+      },
+      "ratings": {
+        "confidence": {
+          "n": 33,
+          "median": 3.0,
+          "q1": 3.0,
+          "q3": 3.0,
+          "mean": 3.303030303030303,
+          "sd": 0.8472325715546059
+        },
+        "clarity": {
+          "n": 33,
+          "median": 4.0,
+          "q1": 3.0,
+          "q3": 4.0,
+          "mean": 3.757575757575758,
+          "sd": 0.7084447327730932
+        },
+        "enough_evidence": {
+          "n": 33,
+          "median": 3.0,
+          "q1": 3.0,
+          "q3": 4.0,
+          "mean": 3.484848484848485,
+          "sd": 0.8703882797784892
+        },
+        "mental_effort": {
+          "n": 33,
+          "median": 3.0,
+          "q1": 3.0,
+          "q3": 4.0,
+          "mean": 3.393939393939394,
+          "sd": 0.8992842271563097
+        }
+      },
+      "routing_action_counts": {
+        "Close without escalation": 8,
+        "Escalate for investigation": 7,
+        "Request more information": 18
+      }
+    },
+    "deterministic_brief": {
+      "label": "Deterministic brief",
+      "participants": 11,
+      "task_responses": 33,
+      "accuracy": {
+        "top_evidence": {
+          "successes": 29,
+          "n": 33,
+          "rate": 0.8787878787878788,
+          "ci95_lower": 0.7267415674973484,
+          "ci95_upper": 0.9518391673241576
+        },
+        "direction": {
+          "successes": 28,
+          "n": 33,
+          "rate": 0.8484848484848485,
+          "ci95_lower": 0.6907978686153953,
+          "ci95_upper": 0.9334964074203904
+        },
+        "evidence_count": {
+          "successes": 26,
+          "n": 33,
+          "rate": 0.7878787878787878,
+          "ci95_lower": 0.6224802241287064,
+          "ci95_upper": 0.8932411343356381
+        }
+      },
+      "ratings": {
+        "confidence": {
+          "n": 33,
+          "median": 3.0,
+          "q1": 3.0,
+          "q3": 4.0,
+          "mean": 3.484848484848485,
+          "sd": 0.6671399834935375
+        },
+        "clarity": {
+          "n": 33,
+          "median": 4.0,
+          "q1": 3.0,
+          "q3": 4.0,
+          "mean": 3.8181818181818183,
+          "sd": 0.882274951990076
+        },
+        "enough_evidence": {
+          "n": 33,
+          "median": 4.0,
+          "q1": 3.0,
+          "q3": 4.0,
+          "mean": 3.696969696969697,
+          "sd": 0.6839612783652524
+        },
+        "mental_effort": {
+          "n": 33,
+          "median": 3.0,
+          "q1": 3.0,
+          "q3": 4.0,
+          "mean": 3.212121212121212,
+          "sd": 0.7398300378117159
+        }
+      },
+      "routing_action_counts": {
+        "Close without escalation": 4,
+        "Escalate for investigation": 9,
+        "Request more information": 20
+      }
+    },
+    "guarded_llm_brief": {
+      "label": "Guarded LLM brief",
+      "participants": 11,
+      "task_responses": 33,
+      "accuracy": {
+        "top_evidence": {
+          "successes": 27,
+          "n": 33,
+          "rate": 0.8181818181818182,
+          "ci95_lower": 0.656114329507048,
+          "ci95_upper": 0.9138934877430174
+        },
+        "direction": {
+          "successes": 26,
+          "n": 33,
+          "rate": 0.7878787878787878,
+          "ci95_lower": 0.6224802241287064,
+          "ci95_upper": 0.8932411343356381
+        },
+        "evidence_count": {
+          "successes": 24,
+          "n": 33,
+          "rate": 0.7272727272727273,
+          "ci95_lower": 0.5578211674561319,
+          "ci95_upper": 0.849327273436772
+        }
+      },
+      "ratings": {
+        "confidence": {
+          "n": 33,
+          "median": 3.0,
+          "q1": 3.0,
+          "q3": 3.0,
+          "mean": 3.1515151515151514,
+          "sd": 0.565752381856018
+        },
+        "clarity": {
+          "n": 33,
+          "median": 4.0,
+          "q1": 4.0,
+          "q3": 4.0,
+          "mean": 3.9696969696969697,
+          "sd": 0.8095078939102635
+        },
+        "enough_evidence": {
+          "n": 33,
+          "median": 3.0,
+          "q1": 3.0,
+          "q3": 4.0,
+          "mean": 3.4545454545454546,
+          "sd": 0.8325754129097365
+        },
+        "mental_effort": {
+          "n": 33,
+          "median": 3.0,
+          "q1": 3.0,
+          "q3": 4.0,
+          "mean": 3.3636363636363638,
+          "sd": 0.9943019479194253
+        }
+      },
+      "routing_action_counts": {
+        "Escalate for investigation": 4,
+        "Request more information": 26,
+        "Close without escalation": 3
+      }
+    }
+  },
+  "preferences": {
+    "overall_clearest": {
+      "Guarded LLM brief": {
+        "count": 7,
+        "rate": 0.6363636363636364
+      },
+      "No preference": {
+        "count": 3,
+        "rate": 0.2727272727272727
+      },
+      "Deterministic brief": {
+        "count": 1,
+        "rate": 0.09090909090909091
+      }
+    },
+    "overall_preferred": {
+      "Guarded LLM brief": {
+        "count": 7,
+        "rate": 0.6363636363636364
+      },
+      "Deterministic brief": {
+        "count": 3,
+        "rate": 0.2727272727272727
+      },
+      "Raw reason codes": {
+        "count": 1,
+        "rate": 0.09090909090909091
+      }
+    },
+    "overall_trustworthy": {
+      "Deterministic brief": {
+        "count": 6,
+        "rate": 0.5454545454545454
+      },
+      "Guarded LLM brief": {
+        "count": 4,
+        "rate": 0.36363636363636365
+      },
+      "Raw reason codes": {
+        "count": 1,
+        "rate": 0.09090909090909091
+      }
+    }
+  },
+  "participant_profile": {
+    "background_area": {
+      "Computing / IT": 8,
+      "Business / finance / accounting": 3
+    },
+    "ml_familiarity": {
+      "Basic": 6,
+      "Intermediate": 3,
+      "None": 2
+    },
+    "fraud_familiarity": {
+      "Basic": 9,
+      "None": 2
+    },
+    "shap_familiarity": {
+      "Not sure": 5,
+      "Yes": 3,
+      "No": 3
+    }
+  },
+  "free_text": {
+    "case_comments_nonempty": 0,
+    "overall_comments_nonempty": 0,
+    "analysis": "not coded or reproduced"
+  },
+  "inferential_tests": {
+    "performed": false,
+    "reason": "The interim n=11 sample is below the pre-specified minimum of 18; the registered analysis therefore remains descriptive."
+  },
+  "limitations": [
+    "interim sample below the pre-specified minimum",
+    "proxy reviewers rather than professional fraud analysts",
+    "synthetic alerts and a fixed nine-case order",
+    "three cases per explanation condition",
+    "task responses are clustered within participants",
+    "no real banking deployment or fraud-loss outcome"
+  ]
+}

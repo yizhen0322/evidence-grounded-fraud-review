@@ -1,0 +1,25 @@
+seed: 42
+generator:
+  seed: 42
+  n_transactions: 50000
+  n_customers: 1500
+  n_terminals: 400
+  start: "2024-01-01T00:00:00"
+  days: 150
+  terminal_compromise_rate: 0.10
+  burst_fraud_rate: 0.015
+feedback_delay_days: 7
+terminal_window_days: 7
+top_k: 3
+alert_limit: 25
+validator_corpus: corpus/semantic_guardrail_corpus_v1.jsonl
+xgb_params:
+  n_estimators: 160
+  max_depth: 4
+  learning_rate: 0.05
+  n_jobs: 1
+llm:
+  enabled: true
+  host: "http://localhost:11434"
+  model: "llama3:8b"
+  timeout_seconds: 60

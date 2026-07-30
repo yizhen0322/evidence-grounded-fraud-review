@@ -1,0 +1,10 @@
+question,choice,count,rate
+overall_clearest,Guarded LLM brief,7,0.6363636363636364
+overall_clearest,No preference,3,0.2727272727272727
+overall_clearest,Deterministic brief,1,0.09090909090909091
+overall_preferred,Guarded LLM brief,7,0.6363636363636364
+overall_preferred,Deterministic brief,3,0.2727272727272727
+overall_preferred,Raw reason codes,1,0.09090909090909091
+overall_trustworthy,Deterministic brief,6,0.5454545454545454
+overall_trustworthy,Guarded LLM brief,4,0.36363636363636365
+overall_trustworthy,Raw reason codes,1,0.09090909090909091

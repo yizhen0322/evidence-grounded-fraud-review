@@ -4,6 +4,6 @@ Read and follow `AGENTS.md` in this directory — it is the single source of tru
 
 Quick orientation:
 - CP2 implementation plan: `docs/plans/2026-07-13-cp2-implementation-plan.md`
-- Approved methodology: `../Proposal_Capstone_Project.pdf` (Chapter 3)
+- Approved methodology: `../CP1/01_FINAL_SUBMISSION/Proposal_Capstone_Project.pdf` (Chapter 3)
 - Run experiments only via configs in `configs/` + code in `src/`; results live in `experiments/runs/`
 - `uv run pytest` must pass before any commit that touches `src/`

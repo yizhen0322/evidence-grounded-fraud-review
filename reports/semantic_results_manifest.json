@@ -1,0 +1,65 @@
+{
+  "generated_at": "2026-07-26T12:17:15.816357+00:00",
+  "inputs": {
+    "explanation_comparison.jsonl": {
+      "sha256": "e873f6295495ca07875d962c4638ce4c4785c78ef8c25c63b18fe3990c5a02fa"
+    },
+    "explanation_summary.json": {
+      "sha256": "a0fc36efc8173a4cac839fdd6a37155b4f71bbf74fb52dc205743d18fff01b49"
+    },
+    "metrics.json": {
+      "sha256": "4af45606b7f4c1c2b95e17f691ebbbf9fa42ab51518dd4737ab0baa139308209"
+    },
+    "semantic_validator_calibration.json": {
+      "sha256": "77c518556407e3db0d62d8c032f9fd705258d37833450d69612842541083e0f1"
+    }
+  },
+  "interpretation_boundary": "S0 is a separate single-seed synthetic operational case study and is not directly comparable with the ULB G0-G7 benchmark.",
+  "outputs": {
+    "reports/figures/semantic_detector_metrics.pdf": {
+      "sha256": "66c355e0ff6db47d707027f404ac7303dc7bf8339c036b098bb577a8205fa06e"
+    },
+    "reports/figures/semantic_detector_metrics.png": {
+      "sha256": "7a1839cd0172f1c28781f458dac93b87142bc0a97663094f1f8ad43c9860da74"
+    },
+    "reports/figures/semantic_detector_metrics.svg": {
+      "sha256": "1d8a4b3182a00eba47089161423b8ce098c4aea934ff1959a1835929aa4b8267"
+    },
+    "reports/figures/semantic_detector_metrics.tiff": {
+      "sha256": "40bc1c66a4eb4a15e317a99cfa6d5b4fec57737ab96c6871db005789d3e1c945"
+    },
+    "reports/figures/semantic_explanation_assurance.pdf": {
+      "sha256": "24da9fe6640dccd5a591d261d19a60b2924b78fc2f9b85f1338f82db3fe77f08"
+    },
+    "reports/figures/semantic_explanation_assurance.png": {
+      "sha256": "8792f6cb5b2a5b56e63330ed884991dab22a07adc71a536bec67c595d80c2eea"
+    },
+    "reports/figures/semantic_explanation_assurance.svg": {
+      "sha256": "ed92b29a3aeb494d365038584fa7fff5fe537fefe73dece042fb204b6dd72fc7"
+    },
+    "reports/figures/semantic_explanation_assurance.tiff": {
+      "sha256": "06329ac0a9313740e78ea8d9200a577b06b91b8533a48f95c7e27c1363bdf593"
+    },
+    "reports/tables/semantic_brief_comparison.csv": {
+      "rows": 8,
+      "sha256": "ac9995367cc79b9eb5d423c0a689833e68bf58d5753d89655c42f31d775ad7eb"
+    },
+    "reports/tables/semantic_detector_metrics.csv": {
+      "rows": 4,
+      "sha256": "eeb910fd04bd53927f38ad41d05bf8d6fe08412c83a44b01c7daa114c3d6dfcb"
+    },
+    "reports/tables/semantic_explanation_assurance.csv": {
+      "rows": 5,
+      "sha256": "f607162b0439ca701dfe68eb3280318b2d40299880209610d240e6283000dbd3"
+    }
+  },
+  "schema_version": 1,
+  "source_code_sha256": {
+    "src/provenance.py": "ed2eadd35fb65cce49ffb7efe9ad061e3788fe5e393c5461fd40f5cbfe0f7c4b",
+    "tools/make_semantic_case_study_figures.py": "8e0c09bb43eca1c911c4333c868936c2160eb7100552300194f6bc7236a9dc54"
+  },
+  "source_run": {
+    "manifest_sha256": "bbc18d3720b5a751568b44b45553b100da1ed229ac08443bceb8e4a3f12645c5",
+    "run_id": "2026-07-26_s0_seed42"
+  }
+}

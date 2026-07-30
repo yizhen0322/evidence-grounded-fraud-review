@@ -1,0 +1,5 @@
+metric,value,split
+Average Precision,0.5440174162000664,test
+Precision,0.72,test
+Recall,0.4,test
+F1,0.5142857142857142,test

@@ -1,0 +1,10 @@
+condition,condition_label,routing_action,count,n,rate
+raw_reason_codes,Raw reason codes,Close without escalation,8,33,0.24242424242424243
+raw_reason_codes,Raw reason codes,Escalate for investigation,7,33,0.21212121212121213
+raw_reason_codes,Raw reason codes,Request more information,18,33,0.5454545454545454
+deterministic_brief,Deterministic brief,Close without escalation,4,33,0.12121212121212122
+deterministic_brief,Deterministic brief,Escalate for investigation,9,33,0.2727272727272727
+deterministic_brief,Deterministic brief,Request more information,20,33,0.6060606060606061
+guarded_llm_brief,Guarded LLM brief,Escalate for investigation,4,33,0.12121212121212122
+guarded_llm_brief,Guarded LLM brief,Request more information,26,33,0.7878787878787878
+guarded_llm_brief,Guarded LLM brief,Close without escalation,3,33,0.09090909090909091

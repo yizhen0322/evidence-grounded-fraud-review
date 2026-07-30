@@ -1,0 +1,9 @@
+measure,value
+Accepted guarded LLM briefs,23
+Unique analyst-visible LLM brief strings,2
+Deterministic mean words,39.08695652173913
+Guarded LLM mean words,12.0
+Deterministic mean characters,297.9130434782609
+Guarded LLM mean characters,76.08695652173913
+Deterministic mean named evidence items,3.0
+Guarded LLM mean named evidence items,1.0

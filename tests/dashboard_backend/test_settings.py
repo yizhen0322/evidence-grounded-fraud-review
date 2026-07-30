@@ -3,12 +3,15 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+from fastapi.testclient import TestClient
 
+from app.backend.server import create_app
 from app.backend.settings import DashboardSettings
 
 
 BASE = """schema_version: 1
 artifacts:
+  dataset_path: data/raw/creditcard.csv
   detector_run: experiments/runs/detector
   g4_run: experiments/runs/g4
   g5_run: experiments/runs/g5
@@ -38,7 +41,13 @@ workflow:
         ("http://127.0.0.1:11434", "http://127.0.0.2:11434", "loopback"),
         ("host: 127.0.0.1", "host: 0.0.0.0", "loopback"),
         ("experiments/runs/detector", "experiments/runs/latest", "latest"),
+        (
+            "experiments/runs/detector",
+            "experiments/runs/detector\n  semantic_run: experiments/runs/latest",
+            "latest",
+        ),
         ("experiments/runs/g4", "experiments/runs/g*", "glob"),
+        ("data/raw/creditcard.csv", "data/raw/*.csv", "glob"),
     ],
 )
 def test_settings_reject_remote_or_ambiguous_configuration(
@@ -82,3 +91,43 @@ def test_settings_keep_workflow_database_separate_and_exact(
     )
     with pytest.raises(ValueError, match="workflow|glob|escapes"):
         DashboardSettings.load(path, repo_root=tmp_path)
+
+
+def test_disabled_workflow_never_opens_database(
+    tmp_path: Path,
+    dashboard_snapshot,
+    monkeypatch,
+):
+    path = tmp_path / "dashboard.yaml"
+    path.write_text(
+        BASE.replace("enabled: true", "enabled: false").replace(
+            "experiments/runs/detector",
+            "experiments/runs/2026-07-14_g6_seed42",
+        ).replace(
+            "experiments/runs/g4",
+            "experiments/runs/2026-07-14_g4_seed42",
+        ).replace(
+            "experiments/runs/g5",
+            "experiments/runs/2026-07-14_g5_seed42",
+        )
+    )
+    settings = DashboardSettings.load(path, repo_root=Path.cwd())
+
+    def unexpected_store(_path):
+        raise AssertionError("disabled workflow must not open SQLite")
+
+    monkeypatch.setattr("app.backend.server.WorkflowStore", unexpected_store)
+    app = create_app(settings, dashboard_snapshot, require_frontend=False)
+    with TestClient(app) as client:
+        assert client.get("/api/v1/health").json()["workflow_status"] == "disabled"
+        record = client.get("/api/v1/workflow/cases/42009").json()
+        assert record["status"] == "unreviewed"
+        assert client.put(
+            "/api/v1/workflow/cases/42009",
+            json={
+                "revision": 0,
+                "status": "in_review",
+                "disposition": None,
+                "note": "",
+            },
+        ).status_code == 503

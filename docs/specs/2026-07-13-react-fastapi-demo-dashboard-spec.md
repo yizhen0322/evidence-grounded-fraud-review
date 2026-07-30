@@ -2,7 +2,7 @@
 
 > **Scope update — 2026-07-14:** the presentation framing in this document is superseded by `docs/specs/2026-07-14-fraud-review-workbench-spec.md`. The research-artifact contracts below remain binding, but the delivered product now adds a separate local SQLite workflow plane for analyst status, provisional disposition, notes, revisions, and activity events. Detector, G4, G5, and report artifacts remain immutable.
 
-**Project:** Credit Card Fraud Detection using a Hybrid Autoencoder-XGBoost Model with Local LLM Explanations  
+**Project:** Evidence-Grounded Credit Card Fraud Detection and Review with Local LLM Explanations and Deterministic Guardrails
 **Date:** 2026-07-13  
 **Status:** Approved design; implementation scheduled as CP2 Task 7.4  
 **Audience:** project author, implementation agents, supervisor, examiner-demo rehearsal reviewers  
@@ -117,11 +117,11 @@ A technical reviewer may explore other flagged cases, inspect provenance, compar
 
 ### 6.1 Five-minute core flow
 
-1. **Open Case Queue:** explain that cases are already scored by the frozen detector and sorted by recorded risk score.
-2. **Open a faithful case:** show the detector result and the evaluation-only label.
+1. **Open Case Queue:** explain that flagged cases are routed by workflow urgency and explanation exceptions, with the frozen detector rank used only as a stable final ordering.
+2. **Open a faithful case:** show the detector result, hash-verified transaction amount and elapsed dataset time, and the explicit limits of the anonymised dataset.
 3. **Read the evidence:** show the top recorded SHAP contributions and standardized reason codes.
-4. **Inspect the narrative:** show the recorded G5 narrative and three passed checks.
-5. **Open Data sent to LLM:** prove that the payload contains only case ID, risk bucket, feature name, direction, and rank—not raw values, probability, or SHAP magnitude.
+4. **Inspect the narrative:** show the recorded G5 narrative and four passed checks: format, completeness, grounding, and direction.
+5. **Open Data sent to LLM:** prove that the payload contains only the coarse risk bucket, feature name, direction, and rank—not the case ID, Amount, Time, raw values, probability, or SHAP magnitude.
 6. **Open Guardrail Lab:** flip one direction and run the real validator.
 7. **Show rejection and fallback:** the direction badge fails and the system returns deterministic reason codes.
 8. **Switch to Ollama unavailable:** show that generation failure still produces a safe fallback.
@@ -129,7 +129,7 @@ A technical reviewer may explore other flagged cases, inspect provenance, compar
 
 ### 6.2 Extended flow
 
-Add a real model error or uncertainty case. Explain that the historical label is legitimate even though the detector flagged the case. This demonstrates honest error analysis and avoids presenting the model as infallible.
+Use the Model & Policy route to discuss false positives, false negatives, and threshold trade-offs at aggregate level. Historical labels remain evaluation-only and are not exposed in the analyst workflow, which avoids turning hindsight into operational evidence.
 
 ### 6.3 Curated scenarios
 
@@ -138,7 +138,7 @@ The dashboard configuration names curated case IDs, but the backend validates th
 | Scenario | Required predicate |
 |---|---|
 | Faithful recorded case | G4 record exists; G5 narrative exists; format, grounding, and direction checks all passed; no recorded fallback |
-| Real error/uncertainty case | Prefer a flagged false positive (`pred=1`, `y_true=0`); if none exists, use another explicitly described real error or near-threshold case |
+| Evaluation-only error/uncertainty case | Used for startup validation and report evidence only; it is not exposed as an operational shortcut |
 | Attack-compatible case | Has a valid evidence record and a faithful base narrative that can be deterministically mutated |
 | Ollama unavailable | No case predicate; simulated by stopping Ollama or a test adapter timeout |
 
@@ -151,8 +151,8 @@ The application uses four top-level routes rather than five equal tabs. Case det
 ```mermaid
 flowchart LR
     Q["Case Queue"] --> I["Investigation"]
-    I --> G["Guardrail Lab"]
-    I --> R["Results"]
+    I --> G["Narrative Assurance"]
+    I --> R["Model & Policy"]
     G --> I
     R --> Q
 ```
@@ -162,42 +162,43 @@ flowchart LR
 The shell appears on every route and contains:
 
 - project title and compact pipeline label;
-- top navigation: Queue, Guardrail Lab, Results;
-- Recorded / Live Replay mode control;
+- top navigation: Work Queue, Narrative Assurance, Model & Policy;
+- Saved explanation / Local regeneration control inside the investigation workspace;
 - Ollama status: Available, Unavailable, or Checking;
 - artifact readiness status;
 - selected case ID;
 - provenance drawer;
 - Reset demo control that returns to the configured starting scenario.
 
-The mode control changes only the narrative panel. Detector scores, historical labels, reason codes, and recorded results remain frozen.
+The mode control changes only the narrative panel. Detector evidence, reason codes, transaction context, and recorded results remain frozen.
 
 ## 8. Screen specifications
 
 ### 8.1 Case Queue — `/queue`
 
-**Purpose:** orient the examiner and select a recorded flagged transaction.
+**Purpose:** provide an analyst-facing worklist for recorded flagged transactions without pretending that an uncalibrated detector score is a business severity rating.
 
 **Primary content:**
 
-- curated scenario cards at the top;
+- operational snapshot briefing at the top;
 - searchable/filterable flagged-case table;
-- default sorting by recorded score descending;
+- routing order: follow-up, active review, explanation fallback, remaining unreviewed cases by frozen detector rank, then completed cases;
 - row click opens `/cases/:caseId`.
 
 **Table columns:**
 
 | Column | Meaning |
 |---|---|
+| Routing | Workflow-based reason the case appears at its current position |
 | Case | Stable recorded `case_id` |
-| Risk | Recorded G4 risk bucket |
-| Score | Frozen detector score, clearly labelled as model score |
-| Detector | Flagged / not flagged; the default queue contains flagged cases |
-| Evaluation-only ground truth | Fraud / Legitimate |
-| Top reason | Rank-1 recorded reason code |
-| Recorded narrative | Passed / Fallback / Unavailable |
+| Transaction context | Hash-verified Amount and elapsed dataset time; currency and calendar time are explicitly unknown |
+| Score order | Rank among the configured flagged cases, explicitly labelled as ordering rather than severity |
+| Explanation delivery | Passed / Fallback / Unavailable |
+| Primary anonymous signal | Rank-1 recorded reason code, labelled as an anonymised PCA component |
+| Review state | Unreviewed / In review / Needs follow-up / Review complete |
+| Updated | Last workflow update time |
 
-**Filters:** risk bucket, evaluation-only label, recorded fallback state. Filters must be deterministic and reflected in the URL query string when practical.
+**Filters:** review state, recorded fallback state, and search over case ID, Amount, or primary anonymous feature. Evaluation-only historical labels are never exposed in the operational worklist.
 
 **States:**
 
@@ -214,11 +215,11 @@ The mode control changes only the narrative panel. Detector scores, historical l
 
 #### Left: detector and evidence
 
-- risk bucket and detector status;
-- recorded score;
+- review routing and detector flagged status;
+- frozen detector rank, explicitly labelled as ordering rather than severity;
 - validation-selected threshold, if present in the run manifest;
-- evaluation-only ground truth;
-- plain-language outcome such as “Flagged false positive” where supported;
+- hash-verified Amount and elapsed dataset time;
+- an explicit statement that currency, calendar time, merchant, customer, device, and channel context are absent;
 - “Top recorded SHAP contributions” diverging bar chart;
 - reason-code table with feature, direction, rank, and optional displayed SHAP magnitude.
 
@@ -235,13 +236,12 @@ Positive contributions use the risk-increasing colour; negative contributions us
 - expandable “Data sent to LLM” disclosure;
 - provenance link.
 
-The live button is labelled **Generate live replay** rather than “Run model,” because the detector and evidence are not recomputed.
+The local-generation button is labelled **Generate explanation** rather than “Run model,” because the detector and evidence are not recomputed and the generated text is temporary rather than a reported experiment result.
 
 #### Data-minimization disclosure
 
 The disclosure explicitly shows that the LLM receives:
 
-- case identifier;
 - coarse risk bucket;
 - reason-code feature names;
 - direction;
@@ -249,7 +249,9 @@ The disclosure explicitly shows that the LLM receives:
 
 It explicitly states that the LLM does not receive:
 
+- the case identifier;
 - the raw transaction row;
+- Amount or elapsed Time;
 - exact feature values;
 - detector probability or score;
 - SHAP magnitudes;
@@ -603,6 +605,7 @@ The Results page uses this manifest to prove that displayed tables and figures b
 schema_version: 1
 
 artifacts:
+  dataset_path: data/raw/creditcard.csv
   detector_run: experiments/runs/<frozen-detector-run>
   g4_run: experiments/runs/<final-g4-run>
   g5_run: experiments/runs/<final-g5-run>
@@ -653,16 +656,15 @@ Returns validated scenario shortcuts and human-readable descriptions.
 Query parameters:
 
 - `risk_bucket`;
-- `historical_label`;
 - `recorded_fallback`;
 - `offset`;
 - `limit`.
 
-Default ordering is score descending with stable `case_id` tie-breaking.
+The backend derives a stable detector rank from score descending with `case_id` tie-breaking, but does not expose the exact score in the public queue payload. Each row includes `score_rank`, `flagged_total`, and hash-verified `transaction_context`. The frontend combines that rank with workflow status and explanation fallback state to create the operational routing order.
 
 ### 15.6 `GET /api/v1/cases/{case_id}`
 
-Returns the verified joined detector, G4, and G5 recorded view for one case.
+Returns the verified joined detector, G4, and G5 recorded view for one case, plus hash-verified `transaction_context`. Exact detector scores and evaluation-only historical labels remain backend-internal. Amount and elapsed Time are UI-only context and are not copied into the narrative evidence payload.
 
 ### 15.7 `GET /api/v1/results`
 
@@ -760,6 +762,7 @@ Allowed presets are `direction_flip`, `unlisted_feature`, and `template_corrupti
 - No external asset/CDN requests in production.
 - Browser live requests contain only `case_id`; browser guardrail requests contain only `case_id` and preset.
 - The server constructs the LLM evidence payload from verified artifacts.
+- The server may expose hash-verified Amount and elapsed Time to the analyst interface, but these fields never enter the LLM evidence serializer.
 - Automated tests inspect the outgoing Ollama payload and reject raw rows, exact values, scores, probabilities, historical labels, and SHAP magnitudes.
 - Do not log raw narrative payloads at INFO level during presentation unless explicitly needed and safe.
 

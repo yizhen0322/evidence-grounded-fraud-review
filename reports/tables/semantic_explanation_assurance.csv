@@ -1,0 +1,6 @@
+measure,successes,n,rate
+Guarded LLM accepted,23,25,0.92
+Deterministic fallback,2,25,0.08
+Transport failure,0,25,0.0
+Calibration attacks intercepted,150,150,1.0
+Faithful controls accepted,40,40,1.0

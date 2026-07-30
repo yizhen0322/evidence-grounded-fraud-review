@@ -56,8 +56,10 @@ def test_live_replay_sends_only_minimal_recorded_evidence(
     assert payload["mode"] == "live_demo"
     assert payload["reported"] is False
     assert payload["fallback"] is False
+    assert "raw_text" not in payload
     evidence = captured["evidence"]
-    assert "Case ID: 42009" in evidence
+    assert "Case ID:" not in evidence
+    assert "42009" not in evidence
     assert "Risk level: High" in evidence
     assert "score" not in evidence.lower()
     assert "probability" not in evidence.lower()
@@ -95,7 +97,35 @@ def test_live_transport_failure_is_successful_not_run_fallback(
     assert payload["fallback"] is True
     assert payload["fallback_reason"] == "llm_transport_unavailable"
     assert set(payload["checks"].values()) == {"NOT_RUN"}
-    assert payload["raw_text"] is None
+    assert "raw_text" not in payload
+
+
+def test_guardrail_rejection_never_delivers_rejected_raw_text(
+    dashboard_settings,
+    dashboard_snapshot,
+):
+    rejected = "This invented narrative should never reach the operational client."
+    service = LiveNarrativeService(
+        dashboard_settings,
+        dashboard_snapshot,
+        generate_fn=lambda *_args, **_kwargs: NarrativeGeneration(rejected, rejected),
+        runtime_fn=lambda **_: {"version": "test", "digest": "test"},
+    )
+    app = create_app(
+        dashboard_settings,
+        dashboard_snapshot,
+        live_service=service,
+        require_frontend=False,
+    )
+    with TestClient(app) as client:
+        response = client.post("/api/v1/live/narrative", json={"case_id": 42009})
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["fallback"] is True
+    assert "raw_text" not in payload
+    assert rejected not in response.text
+    assert payload["final_text"] != rejected
 
 
 def test_all_api_actions_leave_source_artifacts_unchanged(

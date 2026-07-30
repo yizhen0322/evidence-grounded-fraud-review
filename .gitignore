@@ -14,3 +14,16 @@ app/frontend/coverage/
 app/frontend/playwright-report/
 app/frontend/test-results/
 var/dashboard/
+data/private/
+.context/
+.omx/
+.tmp/
+tmp/
+**/.qa/
+reports/.qa/
+app/frontend/.tmp/
+experiments/model_search*/
+experiments/runs/*superseded*/
+supervisor_meeting/
+releases/
+~$*

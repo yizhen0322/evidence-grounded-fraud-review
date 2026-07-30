@@ -27,6 +27,7 @@ ALLOWED_TRANSITIONS = {
     "needs_follow_up": {"needs_follow_up", "in_review", "review_complete"},
     "review_complete": {"in_review"},
 }
+WORKFLOW_NAMESPACES = ("research", "operational")
 
 
 class WorkflowConflictError(RuntimeError):
@@ -59,9 +60,16 @@ def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
-def _default_record(case_id: int) -> dict:
+def _case_key(namespace: str, case_id: int) -> str:
+    if namespace not in WORKFLOW_NAMESPACES:
+        raise ValueError(f"unknown workflow namespace: {namespace}")
+    return f"{namespace}:{int(case_id)}"
+
+
+def _default_record(case_id: int, namespace: str = "research") -> dict:
     return {
         "case_id": case_id,
+        "namespace": namespace,
         "status": "unreviewed",
         "disposition": None,
         "note": "",
@@ -90,45 +98,110 @@ class WorkflowStore:
 
     def _initialize(self) -> None:
         with self._connect() as connection:
-            connection.executescript(
-                """
-                CREATE TABLE IF NOT EXISTS workflow_cases (
-                    case_id INTEGER PRIMARY KEY,
-                    status TEXT NOT NULL CHECK (
-                        status IN ('unreviewed', 'in_review', 'needs_follow_up', 'review_complete')
-                    ),
-                    disposition TEXT CHECK (
-                        disposition IS NULL OR disposition IN ('suspicious', 'not_suspicious', 'inconclusive')
-                    ),
-                    note TEXT NOT NULL DEFAULT '',
-                    revision INTEGER NOT NULL CHECK (revision >= 1),
-                    evidence_fingerprint TEXT NOT NULL,
-                    created_at TEXT NOT NULL,
-                    updated_at TEXT NOT NULL
-                );
+            existing = connection.execute(
+                "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'workflow_cases'"
+            ).fetchone()
+            if existing is not None:
+                case_columns = {
+                    row[1]
+                    for row in connection.execute("PRAGMA table_info(workflow_cases)")
+                }
+                if "namespace" not in case_columns or "case_key" not in case_columns:
+                    self._migrate_legacy_schema(connection)
+            self._create_schema(connection)
 
-                CREATE TABLE IF NOT EXISTS workflow_events (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    case_id INTEGER NOT NULL,
-                    event_type TEXT NOT NULL,
-                    from_status TEXT,
-                    to_status TEXT NOT NULL,
-                    disposition TEXT,
-                    note_changed INTEGER NOT NULL CHECK (note_changed IN (0, 1)),
-                    revision INTEGER NOT NULL,
-                    created_at TEXT NOT NULL,
-                    FOREIGN KEY (case_id) REFERENCES workflow_cases(case_id) ON DELETE CASCADE
-                );
+    @staticmethod
+    def _create_schema(connection: sqlite3.Connection) -> None:
+        connection.executescript(
+            """
+            CREATE TABLE IF NOT EXISTS workflow_cases (
+                case_key TEXT PRIMARY KEY,
+                namespace TEXT NOT NULL CHECK (namespace IN ('research', 'operational')),
+                case_id INTEGER NOT NULL,
+                status TEXT NOT NULL CHECK (
+                    status IN ('unreviewed', 'in_review', 'needs_follow_up', 'review_complete')
+                ),
+                disposition TEXT CHECK (
+                    disposition IS NULL OR disposition IN ('suspicious', 'not_suspicious', 'inconclusive')
+                ),
+                note TEXT NOT NULL DEFAULT '',
+                revision INTEGER NOT NULL CHECK (revision >= 1),
+                evidence_fingerprint TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                UNIQUE(namespace, case_id)
+            );
 
-                CREATE INDEX IF NOT EXISTS workflow_events_case_id_id
-                ON workflow_events(case_id, id);
-                """
+            CREATE TABLE IF NOT EXISTS workflow_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                case_key TEXT NOT NULL,
+                namespace TEXT NOT NULL CHECK (namespace IN ('research', 'operational')),
+                case_id INTEGER NOT NULL,
+                event_type TEXT NOT NULL,
+                from_status TEXT,
+                to_status TEXT NOT NULL,
+                disposition TEXT,
+                note_changed INTEGER NOT NULL CHECK (note_changed IN (0, 1)),
+                revision INTEGER NOT NULL,
+                evidence_fingerprint TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY (case_key) REFERENCES workflow_cases(case_key) ON DELETE CASCADE
+            );
+
+            CREATE INDEX IF NOT EXISTS workflow_events_key_fingerprint_id
+            ON workflow_events(case_key, evidence_fingerprint, id);
+            """
+        )
+
+    @classmethod
+    def _migrate_legacy_schema(cls, connection: sqlite3.Connection) -> None:
+        event_columns = {
+            row[1]
+            for row in connection.execute("PRAGMA table_info(workflow_events)")
+        }
+        if "evidence_fingerprint" not in event_columns:
+            connection.execute(
+                "ALTER TABLE workflow_events ADD COLUMN evidence_fingerprint TEXT"
             )
+        connection.execute("PRAGMA foreign_keys = OFF")
+        connection.executescript(
+            """
+            ALTER TABLE workflow_cases RENAME TO workflow_cases_legacy;
+            ALTER TABLE workflow_events RENAME TO workflow_events_legacy;
+            """
+        )
+        cls._create_schema(connection)
+        connection.executescript(
+            """
+            INSERT INTO workflow_cases (
+                case_key, namespace, case_id, status, disposition, note, revision,
+                evidence_fingerprint, created_at, updated_at
+            )
+            SELECT 'research:' || case_id, 'research', case_id, status, disposition,
+                   note, revision, evidence_fingerprint, created_at, updated_at
+            FROM workflow_cases_legacy;
+
+            INSERT INTO workflow_events (
+                id, case_key, namespace, case_id, event_type, from_status, to_status,
+                disposition, note_changed, revision, evidence_fingerprint, created_at
+            )
+            SELECT id, 'research:' || case_id, 'research', case_id, event_type,
+                   from_status, to_status, disposition, note_changed, revision,
+                   COALESCE(evidence_fingerprint, ''), created_at
+            FROM workflow_events_legacy
+            WHERE case_id IN (SELECT case_id FROM workflow_cases_legacy);
+
+            DROP TABLE workflow_events_legacy;
+            DROP TABLE workflow_cases_legacy;
+            """
+        )
+        connection.execute("PRAGMA foreign_keys = ON")
 
     @staticmethod
     def _record_payload(row: sqlite3.Row, *, activity_count: int = 0) -> dict:
         return {
             "case_id": row["case_id"],
+            "namespace": row["namespace"],
             "status": row["status"],
             "disposition": row["disposition"],
             "note": row["note"],
@@ -139,17 +212,27 @@ class WorkflowStore:
             "activity_count": activity_count,
         }
 
-    def get(self, case_id: int, current_fingerprint: str) -> dict:
+    def get(
+        self,
+        case_id: int,
+        current_fingerprint: str,
+        *,
+        namespace: str = "research",
+    ) -> dict:
+        case_key = _case_key(namespace, case_id)
         with self._connect() as connection:
             row = connection.execute(
-                "SELECT * FROM workflow_cases WHERE case_id = ?",
-                (case_id,),
+                "SELECT * FROM workflow_cases WHERE case_key = ?",
+                (case_key,),
             ).fetchone()
             if row is None:
-                return _default_record(case_id)
+                return _default_record(case_id, namespace)
             count = connection.execute(
-                "SELECT COUNT(*) FROM workflow_events WHERE case_id = ?",
-                (case_id,),
+                """
+                SELECT COUNT(*) FROM workflow_events
+                WHERE case_key = ? AND evidence_fingerprint = ?
+                """,
+                (case_key, current_fingerprint),
             ).fetchone()[0]
             payload = self._record_payload(row, activity_count=count)
             compatible = row["evidence_fingerprint"] == current_fingerprint
@@ -158,28 +241,39 @@ class WorkflowStore:
                 payload.update(status="unreviewed", disposition=None, note="")
             return payload
 
-    def list(self, case_ids: Iterable[int], current_fingerprint: str) -> list[dict]:
+    def list(
+        self,
+        case_ids: Iterable[int],
+        current_fingerprint: str,
+        *,
+        namespace: str = "research",
+    ) -> list[dict]:
         ordered_ids = list(case_ids)
         if not ordered_ids:
             return []
+        _case_key(namespace, ordered_ids[0])
         placeholders = ",".join("?" for _ in ordered_ids)
         with self._connect() as connection:
             rows = connection.execute(
                 f"""
-                SELECT workflow_cases.*, COUNT(workflow_events.id) AS activity_count
+                SELECT workflow_cases.*,
+                       (
+                           SELECT COUNT(*) FROM workflow_events
+                           WHERE workflow_events.case_key = workflow_cases.case_key
+                             AND workflow_events.evidence_fingerprint = ?
+                       ) AS activity_count
                 FROM workflow_cases
-                LEFT JOIN workflow_events ON workflow_events.case_id = workflow_cases.case_id
-                WHERE workflow_cases.case_id IN ({placeholders})
-                GROUP BY workflow_cases.case_id
+                WHERE workflow_cases.namespace = ?
+                  AND workflow_cases.case_id IN ({placeholders})
                 """,
-                ordered_ids,
+                [current_fingerprint, namespace, *ordered_ids],
             ).fetchall()
         recorded = {row["case_id"]: row for row in rows}
         items: list[dict] = []
         for case_id in ordered_ids:
             row = recorded.get(case_id)
             if row is None:
-                items.append(_default_record(case_id))
+                items.append(_default_record(case_id, namespace))
                 continue
             payload = self._record_payload(row, activity_count=row["activity_count"])
             compatible = row["evidence_fingerprint"] == current_fingerprint
@@ -189,17 +283,24 @@ class WorkflowStore:
             items.append(payload)
         return items
 
-    def activity(self, case_id: int) -> list[dict]:
+    def activity(
+        self,
+        case_id: int,
+        current_fingerprint: str,
+        *,
+        namespace: str = "research",
+    ) -> list[dict]:
+        case_key = _case_key(namespace, case_id)
         with self._connect() as connection:
             rows = connection.execute(
                 """
                 SELECT id, event_type, from_status, to_status, disposition,
                        note_changed, revision, created_at
                 FROM workflow_events
-                WHERE case_id = ?
+                WHERE case_key = ? AND evidence_fingerprint = ?
                 ORDER BY id DESC
                 """,
-                (case_id,),
+                (case_key, current_fingerprint),
             ).fetchall()
         return [
             {
@@ -224,6 +325,7 @@ class WorkflowStore:
         disposition: str | None,
         note: str,
         current_fingerprint: str,
+        namespace: str = "research",
     ) -> dict:
         if status not in WORKFLOW_STATUSES:
             raise WorkflowTransitionError(f"unknown workflow status: {status}")
@@ -234,12 +336,13 @@ class WorkflowStore:
                 "review_complete requires a provisional disposition"
             )
 
+        case_key = _case_key(namespace, case_id)
         now = _utc_now()
         with self._connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
             row = connection.execute(
-                "SELECT * FROM workflow_cases WHERE case_id = ?",
-                (case_id,),
+                "SELECT * FROM workflow_cases WHERE case_key = ?",
+                (case_key,),
             ).fetchone()
             current_status = "unreviewed" if row is None else row["status"]
             current_revision = 0 if row is None else row["revision"]
@@ -272,10 +375,10 @@ class WorkflowStore:
             connection.execute(
                 """
                 INSERT INTO workflow_cases (
-                    case_id, status, disposition, note, revision,
+                    case_key, namespace, case_id, status, disposition, note, revision,
                     evidence_fingerprint, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT(case_id) DO UPDATE SET
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(case_key) DO UPDATE SET
                     status = excluded.status,
                     disposition = excluded.disposition,
                     note = excluded.note,
@@ -284,6 +387,8 @@ class WorkflowStore:
                     updated_at = excluded.updated_at
                 """,
                 (
+                    case_key,
+                    namespace,
                     case_id,
                     status,
                     disposition,
@@ -310,11 +415,13 @@ class WorkflowStore:
             connection.execute(
                 """
                 INSERT INTO workflow_events (
-                    case_id, event_type, from_status, to_status, disposition,
-                    note_changed, revision, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    case_key, namespace, case_id, event_type, from_status, to_status, disposition,
+                    note_changed, revision, evidence_fingerprint, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
+                    case_key,
+                    namespace,
                     case_id,
                     event_type,
                     current_status,
@@ -322,11 +429,12 @@ class WorkflowStore:
                     disposition,
                     int(note != current_note),
                     revision,
+                    current_fingerprint,
                     now,
                 ),
             )
 
-        payload = self.get(case_id, current_fingerprint)
+        payload = self.get(case_id, current_fingerprint, namespace=namespace)
         payload["disposition_changed"] = disposition != current_disposition
         return payload
 

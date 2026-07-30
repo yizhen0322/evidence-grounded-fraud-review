@@ -8,6 +8,11 @@ def test_health_provenance_and_scenarios_are_public_safe(api_client):
     assert health.status_code == 200
     assert health.json()["artifact_ready"] is True
     assert health.json()["ollama_status"] == "unavailable"
+    assert health.json()["ollama"] == {
+        "available": False,
+        "status": "unavailable",
+        "model": "llama3:8b",
+    }
 
     provenance = api_client.get("/api/v1/provenance")
     assert provenance.status_code == 200
@@ -27,10 +32,17 @@ def test_cases_are_sorted_and_exclude_historical_ground_truth(api_client):
     response = api_client.get("/api/v1/cases?limit=5")
     assert response.status_code == 200
     rows = response.json()["items"]
-    assert [row["score"] for row in rows] == sorted(
-        [row["score"] for row in rows], reverse=True
-    )
+    assert [row["score_rank"] for row in rows] == [1, 2, 3, 4, 5]
     assert rows[0]["case_id"] == 42009
+    assert rows[0]["flagged_total"] == 51
+    assert rows[0]["transaction_context"] == {
+        "amount": 112.33,
+        "elapsed_seconds": 40919.0,
+        "currency": None,
+        "time_basis": "seconds_since_dataset_start",
+        "source": "hash_verified_dataset_row",
+    }
+    assert all("score" not in row for row in rows)
     assert all("evaluation_only_ground_truth" not in row for row in rows)
     assert all("y_true" not in row for row in rows)
     assert all(row["pred"] == 1 and row["detector_flagged"] for row in rows)
@@ -48,6 +60,11 @@ def test_case_results_and_figures_keep_stage_boundaries(api_client):
     assert "y_true" not in payload
     assert "outcome" not in payload
     assert payload["pred"] == 1
+    assert "score" not in payload
+    assert payload["score_rank"] == 1
+    assert payload["flagged_total"] == 51
+    assert payload["transaction_context"]["amount"] == 112.33
+    assert payload["transaction_context"]["elapsed_seconds"] == 40919.0
     assert payload["narrative"]["mode"] == "recorded"
     assert payload["narrative"]["reported"] is True
     assert set(payload["narrative"]["checks"]) == {
@@ -56,7 +73,13 @@ def test_case_results_and_figures_keep_stage_boundaries(api_client):
         "grounding",
         "direction",
     }
+    assert "raw_text" not in payload["narrative"]
+    assert "Case ID:" not in payload["data_sent_to_llm"]["payload"]
+    assert "case_id" not in payload["data_sent_to_llm"]["included"]
     assert "score" not in payload["data_sent_to_llm"]["payload"]
+    assert "42009" not in payload["data_sent_to_llm"]["payload"]
+    assert "112.33" not in payload["data_sent_to_llm"]["payload"]
+    assert "40919" not in payload["data_sent_to_llm"]["payload"]
     assert "y_true" not in payload["data_sent_to_llm"]["payload"]
 
     results = api_client.get("/api/v1/results")

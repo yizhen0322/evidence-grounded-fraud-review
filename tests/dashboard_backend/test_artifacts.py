@@ -2,9 +2,14 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pandas as pd
 import pytest
 
-from app.backend.artifacts import ArtifactValidationError, load_snapshot
+from app.backend.artifacts import (
+    ArtifactValidationError,
+    _load_transaction_context,
+    load_snapshot,
+)
 from app.backend.settings import DashboardSettings
 from tests.dashboard_backend.conftest import REPO_ROOT, assert_no_absolute_paths
 
@@ -14,8 +19,34 @@ def test_exact_recorded_chain_loads_fail_closed(dashboard_snapshot):
     assert dashboard_snapshot.case(42009).narrative.arm == "strict"
     assert dashboard_snapshot.case(120085).y_true == 0
     assert dashboard_snapshot.case(120085).pred == 1
+    case = dashboard_snapshot.case(42009)
+    assert case.transaction_context.amount == 112.33
+    assert case.transaction_context.elapsed_seconds == 40919.0
+    assert case.score_rank == 1
+    assert case.flagged_total == 51
     assert set(dashboard_snapshot.figures) == {"pr_curves", "shap_global_bar"}
     assert_no_absolute_paths(dashboard_snapshot.public_provenance())
+
+
+def test_transaction_context_rejects_dataset_hash_mismatch(tmp_path: Path):
+    dataset = tmp_path / "creditcard.csv"
+    pd.DataFrame({"Time": [0.0], "Amount": [12.34]}).to_csv(dataset, index=False)
+
+    with pytest.raises(ArtifactValidationError, match="dataset hash"):
+        _load_transaction_context(dataset, "0" * 64, {0})
+
+
+def test_snapshot_rejects_recorded_source_code_hash_mismatch(
+    dashboard_settings,
+    monkeypatch,
+):
+    def reject_detector(manifest, paths, repo_root="."):
+        if manifest["group"] == "g6":
+            raise ValueError("source hash mismatch: src/run_experiment.py")
+
+    monkeypatch.setattr("app.backend.artifacts.assert_source_hashes", reject_detector)
+    with pytest.raises(ArtifactValidationError, match="source hash mismatch"):
+        load_snapshot(dashboard_settings)
 
 
 def test_wrong_configured_detector_is_rejected(tmp_path: Path):

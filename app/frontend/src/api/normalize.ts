@@ -6,6 +6,7 @@ import type {
   ExplanationArmResult,
   HealthResponse,
   NarrativeView,
+  OperationalProvenanceResponse,
   ProvenanceEntry,
   ProvenanceResponse,
   ResultsResponse,
@@ -74,8 +75,15 @@ export function caseNarrative(value: CaseDetail | undefined): NarrativeView | nu
   return value?.recorded_narrative ?? value?.narrative ?? null;
 }
 
-export function provenanceEntries(response: ProvenanceResponse | undefined): Array<[string, ProvenanceEntry]> {
+export function provenanceEntries(response: ProvenanceResponse | OperationalProvenanceResponse | undefined): Array<[string, ProvenanceEntry]> {
   if (!response) return [];
+  if ("run_id" in response) {
+    return [["s0", {
+      run_id: response.run_id,
+      manifest_sha256: response.manifest_sha256,
+      group: response.group,
+    }]];
+  }
   if (response.artifacts) return Object.entries(response.artifacts);
   return (["detector", "g4", "g5", "results"] as const).flatMap((key) => {
     const entry = response[key];

@@ -1,0 +1,24 @@
+{
+  "annotation_source": "human_attested",
+  "audit_sample_manifest": "experiments/audit/2026-07-14_g5_seed42_strict_audit_sample.manifest.json",
+  "audit_sample_manifest_sha256": "59bbf79c2177efed4b6dc4739b7c5ca0f2db1d18d0b1baef308e2880d0687e6b",
+  "generated_at": "2026-07-29T12:10:14.662221+00:00",
+  "human_attestation": "The student manually reviewed all 49 audit items and judged that none contained a semantic violation.",
+  "human_columns": [
+    "violation_found",
+    "violation_category",
+    "notes"
+  ],
+  "n_violations": 0,
+  "source_audit_sheet": "experiments/audit/2026-07-14_g5_seed42_strict_audit_sample.csv",
+  "source_audit_sheet_sha256": "882e3abed08af5bf6bf44de22127a48c1fa03fc6d6eb63123d597dd9d6a42ffe",
+  "source_g5_manifest_sha256": "78491f49d3e9b001943890568413840404b8a7a76fd83e8ab10ae83d9aaf836e",
+  "undetected_violation_rate": {
+    "ci95": [
+      0.0,
+      0.0727
+    ],
+    "n": 49,
+    "rate": 0.0
+  }
+}

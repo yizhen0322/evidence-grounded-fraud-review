@@ -17,6 +17,14 @@ function IconBase({ size = 18, children, ...props }: IconProps) {
   );
 }
 
+export function OverviewIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M4 13h6V4H4v9Zm10 7h6V11h-6v9ZM4 20h6v-3H4v3Zm10-13h6V4h-6v3Z" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.7" />
+    </IconBase>
+  );
+}
+
 export function QueueIcon(props: IconProps) {
   return (
     <IconBase {...props}>

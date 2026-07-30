@@ -1,0 +1,10 @@
+slot,participant_label,source_case_id,source_case_id_sha256,risk_bucket,top_evidence,top_direction
+S01,Case 01,2365335092145894,2536720a2dcdedf440c6ff3cc5b550ba5050f6e5463c51efeb2194ae1e5ab7aa,High,Terminal distance from customer home,up
+S02,Case 02,398564556210690,edbd3f7bea3d520354d18c0e3e7931a4996a21e03f28dff360b3d75af820b2d3,High,Amount vs customer 30-day average,up
+S03,Case 03,50813004217433,7e0d40bc45672c4de7320f01c9699364614738664ea874e479b42d255c118997,High,Amount vs customer 30-day average,up
+S04,Case 04,940801767539837,6fcc0adf929a69a919a25d7cf5a0c9e4957ca81455f0631441a98c330aec8e44,Medium,Terminal distance from customer home,up
+S05,Case 05,1353086321996688,2f336acf1986cba5a76102aaae5f3c6e117cb817b1a030b7f1de85860f49e324,Medium,Amount vs customer 30-day average,up
+S06,Case 06,4272573758717631,f1e643eca99a815d9d0b2449fcca3f988c1d9ef9690013328d845b46de90f479,Medium,Terminal distance from customer home,up
+S07,Case 07,651018576137270,370d7b9764d66f1dcf0c2e8ff07040b52680a389c583f8b6f0b9489963caf5cd,Low,Terminal distance from customer home,up
+S08,Case 08,251280897846142,d1f2c6db0f087cd4c1b18abe839e6a69bc133ddf722c6cfe2d8028e62204faf0,Low,Amount vs customer 30-day average,up
+S09,Case 09,3008127019169509,ff1f36201bee2af76e8262347f439866de13c32b6f44502513214d473d657a1b,Low,Terminal distance from customer home,up

@@ -25,6 +25,12 @@ from app.backend.schemas import (
     LiveNarrativeRequest,
     WorkflowUpdateRequest,
 )
+from app.backend.semantic_artifacts import (
+    SemanticSnapshot,
+    load_semantic_snapshot,
+    semantic_unavailable_error,
+)
+from app.backend.semantic_attacks import run_semantic_attack
 from app.backend.settings import DashboardSettings
 from app.backend.workflow import (
     WorkflowConflictError,
@@ -33,7 +39,7 @@ from app.backend.workflow import (
     WorkflowTransitionError,
     evidence_fingerprint,
 )
-from src.provenance import sha256_file
+from src.provenance import sha256_file, sha256_json
 
 
 BUILD_COMMAND = "cd app/frontend && npm ci && npm run build"
@@ -46,6 +52,20 @@ def _error(code: str, message: str, details=None) -> dict:
 def _frontend_version(dist: Path) -> str:
     index = dist / "index.html"
     return sha256_file(index)[:12] if index.exists() else "not-built"
+
+
+def _empty_workflow_record(case_id: int) -> dict:
+    return {
+        "case_id": case_id,
+        "status": "unreviewed",
+        "disposition": None,
+        "note": "",
+        "revision": 0,
+        "created_at": None,
+        "updated_at": None,
+        "evidence_compatible": True,
+        "activity_count": 0,
+    }
 
 
 def _detector_result(row) -> dict:
@@ -110,6 +130,7 @@ def create_app(
     settings: DashboardSettings,
     snapshot: DashboardSnapshot | None = None,
     *,
+    semantic_snapshot: SemanticSnapshot | None = None,
     live_service: LiveNarrativeService | None = None,
     workflow_store: WorkflowStore | None = None,
     require_frontend: bool = True,
@@ -121,13 +142,55 @@ def create_app(
             f"frontend production build is missing; run: {BUILD_COMMAND}"
         )
     live = live_service or LiveNarrativeService(settings, snapshot)
-    workflow = workflow_store or WorkflowStore(settings.workflow_database)
+    workflow = workflow_store
+    if workflow is None and settings.config.workflow.enabled:
+        workflow = WorkflowStore(settings.workflow_database)
     fingerprint = evidence_fingerprint(snapshot.public_provenance())
-    app = FastAPI(title="Fraud Detection FYP Demo", version="1.0.0")
+    app = FastAPI(title="Fraud Alert Review Workbench", version="1.0.0")
     app.state.settings = settings
     app.state.snapshot = snapshot
+    app.state.semantic_snapshot = semantic_snapshot
     app.state.live = live
     app.state.workflow = workflow
+
+    def operational_snapshot() -> SemanticSnapshot:
+        cached = app.state.semantic_snapshot
+        if cached is not None:
+            return cached
+        if settings.semantic_run is None:
+            raise HTTPException(status_code=503, detail=semantic_unavailable_error())
+        try:
+            loaded = load_semantic_snapshot(settings)
+        except ArtifactValidationError as error:
+            raise HTTPException(
+                status_code=503,
+                detail={
+                    "code": "semantic_artifact_unavailable",
+                    "message": str(error),
+                },
+            ) from error
+        app.state.semantic_snapshot = loaded
+        return loaded
+
+    def operational_fingerprint(semantic: SemanticSnapshot) -> str:
+        provenance = semantic.public_provenance()
+        return sha256_json(
+            {
+                "run_id": provenance["run_id"],
+                "manifest_sha256": provenance["manifest_sha256"],
+                "group": provenance["group"],
+            }
+        )
+
+    def operational_case_id(semantic: SemanticSnapshot, case_id: int) -> int:
+        try:
+            semantic.case(str(case_id))
+        except KeyError as error:
+            raise HTTPException(
+                status_code=404,
+                detail={"code": "semantic_case_not_found", "message": str(error)},
+            ) from error
+        return case_id
 
     @app.exception_handler(RequestValidationError)
     async def validation_error(_request: Request, error: RequestValidationError):
@@ -151,12 +214,18 @@ def create_app(
 
     @app.get("/api/v1/health")
     def health():
+        ollama_status = live.availability()
         return {
             "status": "ready",
             "artifact_ready": True,
             "frontend_build_version": _frontend_version(dist),
-            "ollama_status": live.availability(),
-            "workflow_status": "ready",
+            "ollama_status": ollama_status,
+            "ollama": {
+                "available": ollama_status == "available",
+                "status": ollama_status,
+                "model": settings.config.ollama.model,
+            },
+            "workflow_status": "ready" if workflow is not None else "disabled",
         }
 
     @app.get("/api/v1/provenance")
@@ -211,7 +280,11 @@ def create_app(
     @app.get("/api/v1/workflow/summary")
     def workflow_summary():
         case_ids = list(snapshot.cases)
-        items = workflow.list(case_ids, fingerprint)
+        items = (
+            workflow.list(case_ids, fingerprint)
+            if workflow is not None
+            else [_empty_workflow_record(case_id) for case_id in case_ids]
+        )
         counts = {status: 0 for status in (
             "unreviewed",
             "in_review",
@@ -231,6 +304,9 @@ def create_app(
 
     @app.get("/api/v1/workflow/cases")
     def workflow_cases():
+        if workflow is None:
+            items = [_empty_workflow_record(case_id) for case_id in snapshot.cases]
+            return {"items": items, "total": len(items)}
         return {
             "items": workflow.list(snapshot.cases, fingerprint),
             "total": len(snapshot.cases),
@@ -245,6 +321,8 @@ def create_app(
                 status_code=404,
                 detail={"code": "case_not_found", "message": str(error)},
             ) from error
+        if workflow is None:
+            return _empty_workflow_record(case_id)
         return workflow.get(case_id, fingerprint)
 
     @app.get("/api/v1/workflow/cases/{case_id}/activity")
@@ -256,10 +334,202 @@ def create_app(
                 status_code=404,
                 detail={"code": "case_not_found", "message": str(error)},
             ) from error
-        return {"items": workflow.activity(case_id)}
+        if workflow is None:
+            return {"items": []}
+        return {"items": workflow.activity(case_id, fingerprint)}
+
+    @app.get("/api/v1/operational/cases")
+    def operational_cases(
+        risk_bucket: Literal["High", "Medium", "Low"] | None = None,
+        recorded_fallback: bool | None = None,
+        offset: int = Query(default=0, ge=0),
+        limit: int = Query(default=50, ge=1, le=200),
+    ):
+        semantic = operational_snapshot()
+        selected = list(semantic.cases.values())
+        if risk_bucket is not None:
+            selected = [case for case in selected if case.risk_bucket == risk_bucket]
+        if recorded_fallback is not None:
+            selected = [
+                case for case in selected if case.briefs.fallback is recorded_fallback
+            ]
+        selected.sort(key=lambda case: (case.alert_rank, case.case_id))
+        return {
+            "synthetic": True,
+            "items": [case.queue_item() for case in selected[offset : offset + limit]],
+            "total": len(selected),
+            "offset": offset,
+            "limit": limit,
+            "provenance": semantic.public_provenance(),
+        }
+
+    @app.get("/api/v1/operational/cases/{case_id}")
+    def operational_case_detail(case_id: str):
+        semantic = operational_snapshot()
+        try:
+            detail = semantic.case(case_id).public_detail()
+            detail["provenance"] = semantic.public_provenance()
+            return detail
+        except KeyError as error:
+            raise HTTPException(
+                status_code=404,
+                detail={"code": "semantic_case_not_found", "message": str(error)},
+            ) from error
+
+    @app.get("/api/v1/operational/results")
+    def operational_results():
+        semantic = operational_snapshot()
+        return {
+            "synthetic": True,
+            "metrics": dict(semantic.metrics),
+            "explanation_summary": dict(semantic.explanation_summary),
+            "validator_calibration": (
+                dict(semantic.validator_calibration)
+                if semantic.validator_calibration is not None
+                else None
+            ),
+            "case_count": len(semantic.cases),
+            "provenance": semantic.public_provenance(),
+        }
+
+    @app.get("/api/v1/operational/workflow/summary")
+    def operational_workflow_summary():
+        semantic = operational_snapshot()
+        case_ids = [int(case_id) for case_id in semantic.cases if case_id.isdigit()]
+        if len(case_ids) != len(semantic.cases):
+            raise HTTPException(
+                status_code=503,
+                detail={
+                    "code": "semantic_workflow_unavailable",
+                    "message": "Operational workflow requires numeric semantic case identifiers",
+                },
+            )
+        semantic_fingerprint = operational_fingerprint(semantic)
+        items = (
+            workflow.list(
+                case_ids,
+                semantic_fingerprint,
+                namespace="operational",
+            )
+            if workflow is not None
+            else [_empty_workflow_record(case_id) for case_id in case_ids]
+        )
+        counts = {
+            status: sum(item["status"] == status for item in items)
+            for status in (
+                "unreviewed",
+                "in_review",
+                "needs_follow_up",
+                "review_complete",
+            )
+        }
+        return {
+            "total": len(case_ids),
+            "counts": counts,
+            "recorded_fallback": sum(
+                case.briefs.fallback for case in semantic.cases.values()
+            ),
+            "evidence_fingerprint": semantic_fingerprint,
+        }
+
+    @app.get("/api/v1/operational/workflow/cases")
+    def operational_workflow_cases():
+        semantic = operational_snapshot()
+        case_ids = [int(case_id) for case_id in semantic.cases if case_id.isdigit()]
+        if len(case_ids) != len(semantic.cases):
+            raise HTTPException(
+                status_code=503,
+                detail={
+                    "code": "semantic_workflow_unavailable",
+                    "message": "Operational workflow requires numeric semantic case identifiers",
+                },
+            )
+        semantic_fingerprint = operational_fingerprint(semantic)
+        items = (
+            workflow.list(
+                case_ids,
+                semantic_fingerprint,
+                namespace="operational",
+            )
+            if workflow is not None
+            else [_empty_workflow_record(case_id) for case_id in case_ids]
+        )
+        return {"items": items, "total": len(items)}
+
+    @app.get("/api/v1/operational/workflow/cases/{case_id}")
+    def operational_workflow_case(case_id: int):
+        semantic = operational_snapshot()
+        operational_case_id(semantic, case_id)
+        if workflow is None:
+            return _empty_workflow_record(case_id)
+        return workflow.get(
+            case_id,
+            operational_fingerprint(semantic),
+            namespace="operational",
+        )
+
+    @app.get("/api/v1/operational/workflow/cases/{case_id}/activity")
+    def operational_workflow_activity(case_id: int):
+        semantic = operational_snapshot()
+        operational_case_id(semantic, case_id)
+        if workflow is None:
+            return {"items": []}
+        return {
+            "items": workflow.activity(
+                case_id,
+                operational_fingerprint(semantic),
+                namespace="operational",
+            )
+        }
+
+    @app.put("/api/v1/operational/workflow/cases/{case_id}")
+    def update_operational_workflow_case(case_id: int, request: WorkflowUpdateRequest):
+        if workflow is None:
+            raise HTTPException(
+                status_code=503,
+                detail={
+                    "code": "workflow_disabled",
+                    "message": "Analyst workflow storage is disabled by configuration",
+                },
+            )
+        semantic = operational_snapshot()
+        operational_case_id(semantic, case_id)
+        try:
+            return workflow.update(
+                case_id=case_id,
+                expected_revision=request.revision,
+                status=request.status,
+                disposition=request.disposition,
+                note=request.note,
+                current_fingerprint=operational_fingerprint(semantic),
+                namespace="operational",
+            )
+        except WorkflowConflictError as error:
+            raise HTTPException(
+                status_code=409,
+                detail={"code": "workflow_revision_conflict", "message": str(error)},
+            ) from error
+        except WorkflowEvidenceMismatchError as error:
+            raise HTTPException(
+                status_code=409,
+                detail={"code": "workflow_evidence_mismatch", "message": str(error)},
+            ) from error
+        except WorkflowTransitionError as error:
+            raise HTTPException(
+                status_code=422,
+                detail={"code": "workflow_transition_invalid", "message": str(error)},
+            ) from error
 
     @app.put("/api/v1/workflow/cases/{case_id}")
     def update_workflow_case(case_id: int, request: WorkflowUpdateRequest):
+        if workflow is None:
+            raise HTTPException(
+                status_code=503,
+                detail={
+                    "code": "workflow_disabled",
+                    "message": "Analyst workflow storage is disabled by configuration",
+                },
+            )
         try:
             snapshot.case(case_id)
             return workflow.update(
@@ -362,7 +632,7 @@ def create_app(
                 "g4": snapshot.public_provenance()["g4"],
                 "g5": snapshot.public_provenance()["g5"],
             }
-            return payload
+            return JSONResponse(payload, headers={"Cache-Control": "no-store"})
         except KeyError as error:
             raise HTTPException(
                 status_code=404,
@@ -372,6 +642,24 @@ def create_app(
             raise HTTPException(
                 status_code=422,
                 detail={"code": "invalid_attack_case", "message": str(error)},
+            ) from error
+
+    @app.post("/api/v1/operational/guardrails/demo")
+    def operational_guardrail_demo(request: GuardrailDemoRequest):
+        semantic = operational_snapshot()
+        try:
+            payload = run_semantic_attack(semantic, str(request.case_id), request.preset)
+            payload["provenance"] = semantic.public_provenance()
+            return JSONResponse(payload, headers={"Cache-Control": "no-store"})
+        except KeyError as error:
+            raise HTTPException(
+                status_code=404,
+                detail={"code": "semantic_case_not_found", "message": str(error)},
+            ) from error
+        except (RuntimeError, ValueError) as error:
+            raise HTTPException(
+                status_code=422,
+                detail={"code": "invalid_semantic_attack_case", "message": str(error)},
             ) from error
 
     if (dist / "index.html").is_file():

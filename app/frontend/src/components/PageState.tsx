@@ -1,12 +1,12 @@
 import { AlertIcon, RefreshIcon } from "./icons";
 
-export function LoadingState({ label = "Loading verified artifacts" }: { label?: string }) {
+export function LoadingState({ label = "Loading verified evidence" }: { label?: string }) {
   return (
     <div className="page-state" role="status" aria-live="polite">
       <span className="loading-mark" aria-hidden="true" />
       <div>
         <strong>{label}</strong>
-        <p>Reading the immutable dashboard snapshot.</p>
+        <p>Reading the verified system snapshot.</p>
       </div>
     </div>
   );
@@ -17,7 +17,7 @@ export function ErrorState({ error, retry }: { error: Error; retry?: () => void 
     <div className="page-state is-error" role="alert">
       <AlertIcon size={22} />
       <div>
-        <strong>Recorded evidence is unavailable</strong>
+        <strong>Verified evidence is unavailable</strong>
         <p>{error.message}</p>
       </div>
       {retry ? (

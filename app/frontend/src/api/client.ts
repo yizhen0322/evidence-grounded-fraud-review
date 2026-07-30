@@ -6,6 +6,7 @@ import type {
   GuardrailDemoResponse,
   HealthResponse,
   LiveNarrativeResponse,
+  OperationalResultsResponse,
   ProvenanceResponse,
   ResultsResponse,
   WorkflowActivityResponse,
@@ -84,6 +85,13 @@ export const api = {
   cases: (filters: CaseFilters = {}) => request<CasesResponse | CaseDetail[]>(`/cases${queryString(filters)}`),
   case: (caseId: number | string) => request<CaseDetail>(`/cases/${encodeURIComponent(caseId)}`),
   results: () => request<ResultsResponse>("/results"),
+  operationalCases: (filters: CaseFilters = {}) =>
+    request<CasesResponse | CaseDetail[]>(`/operational/cases${queryString(filters)}`),
+  operationalCase: (caseId: number | string) =>
+    request<CaseDetail>(`/operational/cases/${encodeURIComponent(caseId)}`),
+  operationalResults: () => request<OperationalResultsResponse>("/operational/results"),
+  researchCases: (filters: CaseFilters = {}) => request<CasesResponse | CaseDetail[]>(`/cases${queryString(filters)}`),
+  researchCase: (caseId: number | string) => request<CaseDetail>(`/cases/${encodeURIComponent(caseId)}`),
   workflowSummary: () => request<WorkflowSummaryResponse>("/workflow/summary"),
   workflows: () => request<WorkflowListResponse>("/workflow/cases"),
   workflow: (caseId: number | string) =>
@@ -92,6 +100,19 @@ export const api = {
     request<WorkflowActivityResponse>(`/workflow/cases/${encodeURIComponent(caseId)}/activity`),
   updateWorkflow: (caseId: number | string, update: WorkflowUpdate) =>
     request<WorkflowRecord>(`/workflow/cases/${encodeURIComponent(caseId)}`, {
+      method: "PUT",
+      body: JSON.stringify(update),
+    }),
+  operationalWorkflowSummary: () =>
+    request<WorkflowSummaryResponse>("/operational/workflow/summary"),
+  operationalWorkflows: () =>
+    request<WorkflowListResponse>("/operational/workflow/cases"),
+  operationalWorkflow: (caseId: number | string) =>
+    request<WorkflowRecord>(`/operational/workflow/cases/${encodeURIComponent(caseId)}`),
+  operationalWorkflowActivity: (caseId: number | string) =>
+    request<WorkflowActivityResponse>(`/operational/workflow/cases/${encodeURIComponent(caseId)}/activity`),
+  updateOperationalWorkflow: (caseId: number | string, update: WorkflowUpdate) =>
+    request<WorkflowRecord>(`/operational/workflow/cases/${encodeURIComponent(caseId)}`, {
       method: "PUT",
       body: JSON.stringify(update),
     }),
@@ -104,6 +125,12 @@ export const api = {
     }),
   guardrailDemo: (caseId: number, preset: AttackPreset) =>
     request<GuardrailDemoResponse>("/guardrails/demo", {
+      method: "POST",
+      cache: "no-store",
+      body: JSON.stringify({ case_id: caseId, preset }),
+    }),
+  operationalGuardrailDemo: (caseId: number, preset: AttackPreset) =>
+    request<GuardrailDemoResponse>("/operational/guardrails/demo", {
       method: "POST",
       cache: "no-store",
       body: JSON.stringify({ case_id: caseId, preset }),

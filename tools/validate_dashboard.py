@@ -13,6 +13,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from app.backend.artifacts import load_snapshot
+from app.backend.semantic_artifacts import load_semantic_snapshot
 from app.backend.settings import DashboardSettings
 
 
@@ -21,7 +22,7 @@ def validate_dashboard(config_path: str | Path) -> dict[str, Any]:
     settings = DashboardSettings.load(config_path)
     snapshot = load_snapshot(settings)
     provenance = snapshot.public_provenance()
-    return {
+    result: dict[str, Any] = {
         "valid": True,
         "case_count": len(snapshot.cases),
         "scenario_count": len(snapshot.scenarios),
@@ -32,6 +33,18 @@ def validate_dashboard(config_path: str | Path) -> dict[str, Any]:
             for stage in ("detector", "g4", "g5", "results")
         },
     }
+    if settings.semantic_run is not None:
+        semantic = load_semantic_snapshot(settings)
+        semantic_provenance = semantic.public_provenance()
+        result["semantic"] = {
+            "valid": True,
+            "case_count": len(semantic.cases),
+            "run_id": semantic_provenance["run_id"],
+            "manifest_sha256": semantic_provenance["manifest_sha256"],
+            "calibration_passed": semantic.validator_calibration["passed"] is True,
+            "corpus_version": semantic.validator_calibration["corpus_version"],
+        }
+    return result
 
 
 def main() -> None:

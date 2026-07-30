@@ -1,0 +1,11 @@
+field,category,count,n,rate
+background_area,Computing / IT,8,11,0.7272727272727273
+background_area,Business / finance / accounting,3,11,0.2727272727272727
+ml_familiarity,Basic,6,11,0.5454545454545454
+ml_familiarity,Intermediate,3,11,0.2727272727272727
+ml_familiarity,None,2,11,0.18181818181818182
+fraud_familiarity,Basic,9,11,0.8181818181818182
+fraud_familiarity,None,2,11,0.18181818181818182
+shap_familiarity,Not sure,5,11,0.45454545454545453
+shap_familiarity,Yes,3,11,0.2727272727272727
+shap_familiarity,No,3,11,0.2727272727272727

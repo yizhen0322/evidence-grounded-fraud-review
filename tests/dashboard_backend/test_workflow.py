@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 from pathlib import Path
 
 import pytest
@@ -122,6 +123,80 @@ def test_workflow_store_schema_excludes_research_evidence(workflow_store):
     }
     assert forbidden.isdisjoint(columns["workflow_cases"])
     assert forbidden.isdisjoint(columns["workflow_events"])
+    assert {"namespace", "case_key", "case_id"}.issubset(columns["workflow_cases"])
+    assert {"namespace", "case_key", "case_id"}.issubset(columns["workflow_events"])
+
+
+def test_workflow_namespaces_keep_same_case_id_independent(workflow_store):
+    fingerprint = "a" * 64
+    research = workflow_store.update(
+        case_id=42009,
+        expected_revision=0,
+        status="in_review",
+        disposition=None,
+        note="Research review",
+        current_fingerprint=fingerprint,
+        namespace="research",
+    )
+    operational = workflow_store.update(
+        case_id=42009,
+        expected_revision=0,
+        status="in_review",
+        disposition=None,
+        note="Operational review",
+        current_fingerprint=fingerprint,
+        namespace="operational",
+    )
+
+    assert research["note"] == "Research review"
+    assert operational["note"] == "Operational review"
+    assert workflow_store.get(42009, fingerprint, namespace="research")["revision"] == 1
+    assert workflow_store.get(42009, fingerprint, namespace="operational")["revision"] == 1
+    assert workflow_store.activity(42009, fingerprint, namespace="research")[0][
+        "event_type"
+    ] == "review_started"
+    assert workflow_store.activity(42009, fingerprint, namespace="operational")[0][
+        "event_type"
+    ] == "review_started"
+
+
+def test_legacy_activity_is_migrated_fail_closed_by_evidence_fingerprint(tmp_path):
+    path = tmp_path / "legacy-workflow.sqlite3"
+    with sqlite3.connect(path) as connection:
+        connection.executescript(
+            """
+            CREATE TABLE workflow_cases (
+                case_id INTEGER PRIMARY KEY,
+                status TEXT NOT NULL,
+                disposition TEXT,
+                note TEXT NOT NULL,
+                revision INTEGER NOT NULL,
+                evidence_fingerprint TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
+            CREATE TABLE workflow_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                case_id INTEGER NOT NULL,
+                event_type TEXT NOT NULL,
+                from_status TEXT,
+                to_status TEXT NOT NULL,
+                disposition TEXT,
+                note_changed INTEGER NOT NULL,
+                revision INTEGER NOT NULL,
+                created_at TEXT NOT NULL
+            );
+            INSERT INTO workflow_events (
+                case_id, event_type, from_status, to_status, disposition,
+                note_changed, revision, created_at
+            ) VALUES (42009, 'review_completed', 'in_review', 'review_complete',
+                      'suspicious', 1, 2, '2026-07-14T00:00:00+00:00');
+            """
+        )
+
+    store = WorkflowStore(path)
+    assert "evidence_fingerprint" in store.table_columns()["workflow_events"]
+    assert store.activity(42009, "a" * 64) == []
 
 
 def test_workflow_writes_do_not_change_configured_artifacts(
@@ -212,7 +287,11 @@ def test_evidence_change_masks_old_decision_and_supports_explicit_restart(
     assert restarted["status"] == "in_review"
     assert restarted["revision"] == 3
     assert restarted["evidence_compatible"] is True
-    assert workflow_store.activity(42009)[0]["event_type"] == "evidence_review_restarted"
+    current_activity = workflow_store.activity(42009, new_fingerprint)
+    assert [event["event_type"] for event in current_activity] == [
+        "evidence_review_restarted"
+    ]
+    assert workflow_store.activity(42009, old_fingerprint)[0]["event_type"] == "review_completed"
 
 
 def test_completed_review_must_be_reopened_before_it_can_be_changed(workflow_store):

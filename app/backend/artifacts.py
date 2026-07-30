@@ -11,9 +11,14 @@ from typing import Any, Mapping
 import pandas as pd
 
 from app.backend.schemas import check_states
+from app.backend.evidence import serialize_operational_evidence
 from app.backend.settings import DashboardSettings
-from src.narratives.evidence import serialize_evidence
-from src.provenance import sha256_file, source_run_ref, validate_run_manifest
+from src.provenance import (
+    assert_source_hashes,
+    sha256_file,
+    source_run_ref,
+    validate_run_manifest,
+)
 from tools.make_results import validate_results_manifest
 from tools.run_g5_narratives import load_g4_context, validate_reportable_g5_run
 
@@ -64,12 +69,26 @@ class RecordedNarrative:
             "mode": "recorded",
             "reported": True,
             "arm": self.arm,
-            "raw_text": self.raw_output,
             "final_text": self.final_text,
             "checks": check_states(dict(self.checks)),
             "fallback": self.fallback,
             "fallback_reason": self.fallback_reason,
             "latency_seconds": self.latency_seconds,
+        }
+
+
+@dataclass(frozen=True)
+class TransactionContext:
+    amount: float
+    elapsed_seconds: float
+
+    def public(self) -> dict[str, Any]:
+        return {
+            "amount": self.amount,
+            "elapsed_seconds": self.elapsed_seconds,
+            "currency": None,
+            "time_basis": "seconds_since_dataset_start",
+            "source": "hash_verified_dataset_row",
         }
 
 
@@ -84,6 +103,9 @@ class RecordedCase:
     reason_codes: tuple[ReasonCode, ...]
     narrative: RecordedNarrative
     evidence_payload: str
+    transaction_context: TransactionContext
+    score_rank: int
+    flagged_total: int
 
     @property
     def historical_label(self) -> str:
@@ -113,36 +135,41 @@ class RecordedCase:
         }
 
     def queue_item(self) -> dict[str, Any]:
-        top = min(self.reason_codes, key=lambda code: code.rank)
+        ordered_reasons = sorted(self.reason_codes, key=lambda code: code.rank)
+        top = ordered_reasons[0]
         return {
             "case_id": self.case_id,
             "risk_bucket": self.risk_bucket,
-            "score": self.score,
+            "score_rank": self.score_rank,
+            "flagged_total": self.flagged_total,
             "pred": self.pred,
             "detector_flagged": self.pred == 1,
             "detector": self.detector_label,
             "top_reason": top.public(),
+            "top_reasons": [code.public() for code in ordered_reasons[:3]],
             "recorded_narrative_status": (
                 "Fallback" if self.narrative.fallback else "Passed"
             ),
             "recorded_fallback": self.narrative.fallback,
+            "transaction_context": self.transaction_context.public(),
         }
 
     def public_detail(self) -> dict[str, Any]:
         return {
             "case_id": self.case_id,
             "risk_bucket": self.risk_bucket,
-            "score": self.score,
+            "score_rank": self.score_rank,
+            "flagged_total": self.flagged_total,
             "pred": self.pred,
             "detector_flagged": self.pred == 1,
             "detector": self.detector_label,
             "threshold": self.threshold,
             "reason_codes": [code.public() for code in self.reason_codes],
             "narrative": self.narrative.public(),
+            "transaction_context": self.transaction_context.public(),
             "data_sent_to_llm": {
                 "payload": self.evidence_payload,
                 "included": [
-                    "case_id",
                     "coarse risk bucket",
                     "feature name",
                     "direction",
@@ -187,6 +214,36 @@ def _risk_bucket(score: float) -> str:
     if score >= 0.5:
         return "Medium"
     return "Low"
+
+
+def _load_transaction_context(
+    dataset_path: Path,
+    expected_sha256: str,
+    case_ids: set[int],
+) -> dict[int, TransactionContext]:
+    if sha256_file(dataset_path) != expected_sha256:
+        raise ArtifactValidationError(
+            "configured dataset differs from the detector's recorded dataset hash"
+        )
+    frame = pd.read_csv(dataset_path, usecols=["Time", "Amount"])
+    if not case_ids:
+        return {}
+    if min(case_ids) < 0 or max(case_ids) >= len(frame):
+        raise ArtifactValidationError(
+            "recorded case_id falls outside the configured dataset"
+        )
+    selected = frame.iloc[sorted(case_ids)]
+    if selected[["Time", "Amount"]].isna().any().any():
+        raise ArtifactValidationError(
+            "configured dataset has missing transaction context values"
+        )
+    return {
+        case_id: TransactionContext(
+            amount=float(frame.iloc[case_id]["Amount"]),
+            elapsed_seconds=float(frame.iloc[case_id]["Time"]),
+        )
+        for case_id in case_ids
+    }
 
 
 def _assert_shared_chain(child: dict, parent: dict, label: str) -> None:
@@ -304,10 +361,20 @@ def load_snapshot(settings: DashboardSettings) -> DashboardSnapshot:
         detector = validate_run_manifest(settings.detector_run)
         if detector["group"] not in DETECTOR_GROUPS or detector["git_dirty"]:
             raise ArtifactValidationError("configured detector is not a clean reportable group")
+        assert_source_hashes(
+            detector,
+            detector["source_code_sha256"],
+            repo_root=settings.repo_root,
+        )
 
         g4, g4_records, _seed, known_features = load_g4_context(settings.g4_run)
         if g4["git_dirty"]:
             raise ArtifactValidationError("configured G4 is not a clean recorded run")
+        assert_source_hashes(
+            g4,
+            g4["source_code_sha256"],
+            repo_root=settings.repo_root,
+        )
         expected_detector_ref = source_run_ref(settings.detector_run)
         if g4["source_runs"] != [expected_detector_ref]:
             raise ArtifactValidationError("G4 detector source chain is not the exact configured run")
@@ -319,6 +386,11 @@ def load_snapshot(settings: DashboardSettings) -> DashboardSnapshot:
         _assert_shared_chain(g4, detector, "G4")
 
         g5, g5_rows = validate_reportable_g5_run(settings.g5_run)
+        assert_source_hashes(
+            g5,
+            g5["source_code_sha256"],
+            repo_root=settings.repo_root,
+        )
         expected_g4_ref = source_run_ref(settings.g4_run)
         if g5["source_runs"] != [expected_g4_ref]:
             raise ArtifactValidationError("G5 source chain is not the exact configured G4 run")
@@ -353,6 +425,20 @@ def load_snapshot(settings: DashboardSettings) -> DashboardSnapshot:
                 raise ArtifactValidationError(f"G4 label mismatch for case_id {case_id}")
             if record["risk_bucket"] != _risk_bucket(float(record["score"])):
                 raise ArtifactValidationError(f"G4 risk bucket mismatch for case_id {case_id}")
+
+        ranked_case_ids = sorted(
+            g4_by_id,
+            key=lambda case_id: (-float(g4_by_id[case_id]["score"]), case_id),
+        )
+        score_rank_by_id = {
+            case_id: index
+            for index, case_id in enumerate(ranked_case_ids, start=1)
+        }
+        transaction_context_by_id = _load_transaction_context(
+            settings.dataset_path,
+            str(detector["dataset_sha256"]),
+            set(g4_by_id),
+        )
 
         arm = settings.config.recorded_narrative_arm
         selected_rows = [row for row in g5_rows if row["arm"] == arm]
@@ -396,7 +482,10 @@ def load_snapshot(settings: DashboardSettings) -> DashboardSnapshot:
                 threshold=float(detector["threshold"]),
                 reason_codes=reason_codes,
                 narrative=narrative,
-                evidence_payload=serialize_evidence(record),
+                evidence_payload=serialize_operational_evidence(record),
+                transaction_context=transaction_context_by_id[case_id],
+                score_rank=score_rank_by_id[case_id],
+                flagged_total=len(g4_by_id),
             )
 
         cases = MappingProxyType(

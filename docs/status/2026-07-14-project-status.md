@@ -1,16 +1,18 @@
-# FYP project status — 2026-07-14
+# FYP project status - updated 29 July 2026
 
 ## Current delivery state
 
-The research pipeline and local product prototype are implemented and verified. The delivered system is now a **Fraud Review Workbench**, not only a model-results dashboard.
+The evidence pipeline, fail-closed local-LLM explanation layer, analyst application, report, logbook, and presentation package are implemented. The project is one explanation-assurance study supported by detector and application evidence.
 
 Current product claim:
 
-> A locally deployable analyst decision-support prototype backed by immutable, provenance-verified research evidence.
+> Model evidence is converted into a local-LLM candidate explanation, checked deterministically, and either delivered or replaced by a safe evidence-only brief for analyst review.
 
 It is intentionally not described as production-ready, bank-deployed, real-time fraud prevention, multi-user case management, or proven to improve analyst productivity.
 
-## What the system is now
+The ULB benchmark supports the real-data detector evidence chain. The S0 synthetic stream is the primary readable semantic and operational evaluation for the explanation layer. They are not an ensemble and their detector metrics are not compared.
+
+## Implemented system
 
 ### Technology
 
@@ -19,7 +21,7 @@ It is intentionally not described as production-ready, bank-deployed, real-time 
 - Local SQLite analyst workflow store at `var/dashboard/workflow.sqlite3`.
 - Optional local Ollama live replay; recorded evidence remains usable when Ollama is unavailable.
 
-### Product areas
+### Analyst application areas
 
 1. **Operations / Work Queue**
    - prioritized flagged cases;
@@ -50,19 +52,7 @@ It is intentionally not described as production-ready, bank-deployed, real-time 
 
 ## Verification evidence
 
-- Full Python suite: **179 passed**.
-- Frontend component suite: **4 passed**.
-- Playwright browser suite: **10 passed**.
-- ESLint: zero warnings.
-- TypeScript + Vite production build: passed.
-- The actual narrow right-side in-app preview was visually checked after the final build; navigation, queue filters, workflow counts, and horizontal table scrolling remain usable.
-- Exact dashboard validator: valid, 51 cases, verified G6 seed-42 → G4 → G5 → Task 7.1 source chain.
-- Workflow no-write regression hashes and checks mtimes for **21 configured research artifacts**.
-- Implementation commits:
-  - `4ca8408` — local analyst workflow store;
-  - `210bfb4` — analyst Fraud Review Workbench;
-  - `d20b33a` — blind operational workflow and final ground-truth boundary repair.
-  - `eda7794` — responsive repair for the narrow in-app preview.
+The current command-level results and document checks are recorded in `reports/thesis/submission/VERIFICATION_RECORD.md`. The rubric mapping is in `reports/RUBRIC_ALIGNMENT_MATRIX.md`.
 
 ## Research progress already complete
 
@@ -75,48 +65,41 @@ It is intentionally not described as production-ready, bank-deployed, real-time 
 - Guardrail ON/OFF delivery analysis, Wilson intervals, calibration corpus, and deterministic fallback.
 - Results tables, PR curve, SHAP figure, claim ledger, implementation review, dashboard specification, and product specification.
 
-## Work still required
+## Work still required before submission or presentation
 
-### Required human/research work
-
-1. **Complete the human narrative audit.**
-   - File: `experiments/audit/2026-07-14_g5_seed42_strict_audit_sample.csv`
-   - 49 accepted strict narratives are waiting for human-only labels.
-   - After attestation, run `tools/score_audit.py` and add the resulting rate to the report.
-2. **Finish citation and novelty verification.**
-   - Build/check the final literature comparison matrix.
-   - Verify every cited claim and DOI/source.
-   - Keep novelty wording qualified as “within the reviewed literature”; never use a bare “first”.
-3. **Write the complete CP2/FYP report.**
-   - A structured skeleton and evidence ledger exist, but the final report prose is not yet written.
-   - Add Methods as implemented, Results, Discussion, Limitations, societal value, product architecture, screenshots, references, and appendices.
-4. **Presentation preparation.**
-   - Test at the actual projector resolution.
-   - Capture final report/demo screenshots.
-   - Complete at least three timed end-to-end rehearsals, including Ollama unavailable fallback.
+1. Confirm the portal filename, required upload format, official submission date, and any Sunway declaration or originality forms.
+2. Rehearse the presentation and application demonstration on the actual display setup, including the Ollama-unavailable fallback path.
+3. Treat the current human evaluation as interim evidence. It contains 11 adult proxy reviewers, below the planned minimum of 18 and target of 30.
+4. Do not describe the milestone logbook as ten calendar weeks. Repository evidence covers 13 to 29 July 2026.
 
 ### Known limitation to report, not silently hide
 
 - The validator uses a deliberately closed accepted-language grammar. The independent review confirmed faithful out-of-corpus paraphrases that may be rejected. Current fail-closed behavior is safe, but the report must describe the grammar boundary honestly.
 - Changing that validator now would require a new versioned calibration and a fresh final G5 run. It is not required for the current deliverable if documented as a limitation.
 
-### Optional stretch work
+### Optional later work
 
 - A second local LLM/model comparison.
 - Additional responsive/mobile polish, richer SHAP interaction, export/PDF, or multi-case comparison.
-- These are not required for the current FYP product and must not delay the report, human audit, or rehearsal.
+- These are not required for the current CP2 submission and must not delay administrative checks or rehearsal.
 
 ## Where the paper and report materials are
 
 ### Existing original proposal/report documents
 
-- Main editable document: `/Users/yizhen/Documents/sunway——yizhen/AAA_FYP/FYP NG YI ZHEN.docx`
-- Proposal PDF: `/Users/yizhen/Documents/sunway——yizhen/AAA_FYP/Proposal_Capstone_Project.pdf`
-- CP1 rubric: `/Users/yizhen/Documents/sunway——yizhen/AAA_FYP/CP1 Rubrics.pdf`
+- Main editable document: `/Users/yizhen/Documents/sunway——yizhen/AAA_FYP/CP1/02_EDITABLE_SOURCE/FYP NG YI ZHEN.docx`
+- Proposal PDF: `/Users/yizhen/Documents/sunway——yizhen/AAA_FYP/CP1/01_FINAL_SUBMISSION/Proposal_Capstone_Project.pdf`
+- CP1 rubric: `/Users/yizhen/Documents/sunway——yizhen/AAA_FYP/CP1/02_EDITABLE_SOURCE/CP1 Rubrics.pdf`
 
-### CP2 writing materials in the repository
+### CP2 submission materials in the repository
 
-- Report skeleton: `reports/thesis/cp2_report_skeleton.md`
+- Final report: `reports/thesis/submission/CP2_Final_Report_Ng_Yi_Zhen.docx`
+- Final report PDF: `reports/thesis/submission/CP2_Final_Report_Ng_Yi_Zhen.pdf`
+- Logbook: `reports/logbook/CP2_Logbook_Ng_Yi_Zhen.docx`
+- Presentation: `reports/presentation/CP2_Presentation_Ng_Yi_Zhen.pptx`
+- Rubric matrix: `reports/RUBRIC_ALIGNMENT_MATRIX.md`
+- Submission index: `reports/FINAL_SUBMISSION_INDEX.md`
+- Report source: `reports/thesis/cp2_final_report.md`
 - Results-to-claims ledger: `reports/thesis/results_mapping.md`
 - Results summary table: `reports/tables/results_summary.csv`
 - Seed-level results table: `reports/tables/results_main.csv`
@@ -125,4 +108,4 @@ It is intentionally not described as production-ready, bank-deployed, real-time 
 - Main implementation plan: `docs/plans/2026-07-13-cp2-implementation-plan.md`
 - Workbench product spec: `docs/specs/2026-07-14-fraud-review-workbench-spec.md`
 
-There is currently **no complete final CP2 paper file**. The next writing task should use the existing Word document as the editable base and the CP2 skeleton/results mapping as the evidence-controlled chapter guide.
+The complete CP2 report, editable support files, presentation deck, and verification records are present in `reports/`. The PDF copies are the stable visual references; the DOCX and PPTX copies remain editable.

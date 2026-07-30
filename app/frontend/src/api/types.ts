@@ -51,6 +51,19 @@ export interface ProvenanceResponse {
   verified_at?: string;
 }
 
+export interface OperationalProvenanceResponse {
+  run_id: string;
+  group: "s0" | string;
+  seed?: number;
+  synthetic: true;
+  manifest_sha256: string;
+  dataset_sha256?: string | null;
+  config_sha256?: string | null;
+  threshold?: number;
+  feature_names?: string[];
+  artifacts?: Record<string, { sha256: string; source?: string }>;
+}
+
 export interface DemoScenario {
   id?: string;
   key?: string;
@@ -71,10 +84,25 @@ export interface DemoScenariosResponse {
 
 export interface ReasonCode {
   feature: string;
+  display_label?: string;
+  label?: string;
   direction: "increases_risk" | "decreases_risk" | string;
   rank: number;
   shap_value?: number | null;
   reason?: string;
+  value_bucket?: string | null;
+}
+
+export interface TransactionContext {
+  amount: number;
+  elapsed_seconds?: number;
+  timestamp?: string;
+  transaction_time?: string;
+  transaction_id?: string;
+  currency?: null;
+  time_basis?: "seconds_since_dataset_start" | string;
+  source?: "hash_verified_dataset_row" | string;
+  [key: string]: unknown;
 }
 
 export type GuardrailChecks = Record<GuardrailCheckName, CheckState>;
@@ -83,8 +111,6 @@ export interface NarrativeView {
   mode?: "recorded" | "live_demo" | string;
   reported?: boolean;
   arm?: "strict" | "simple" | string;
-  raw_text?: string | null;
-  candidate_text?: string | null;
   final_text: string;
   checks: Partial<GuardrailChecks>;
   check_reasons?: Partial<Record<GuardrailCheckName, string | null>>;
@@ -96,13 +122,26 @@ export interface NarrativeView {
 
 export interface CaseSummary {
   case_id: number;
+  transaction_id?: string;
   risk_bucket: RiskBucket;
-  score: number;
+  score_rank?: number;
+  rank?: number;
+  flagged_total?: number;
   pred?: number;
   detector_flagged?: boolean;
   top_reason?: ReasonCode | string | null;
+  top_signal?: ReasonCode | string | null;
+  readable_top_signal?: string;
+  top_reasons?: ReasonCode[];
   recorded_narrative_status?: "passed" | "fallback" | "unavailable" | string;
   recorded_fallback?: boolean;
+  explanation_delivery?: "guarded_llm" | "deterministic_fallback" | "unavailable" | string;
+  review_state?: WorkflowStatus | string;
+  transaction_context?: TransactionContext;
+  timestamp?: string;
+  amount?: number;
+  customer_activity?: string | number | null;
+  terminal_context?: string | number | null;
 }
 
 export interface CasesResponse {
@@ -115,17 +154,47 @@ export interface CasesResponse {
 
 export interface CaseDetail extends CaseSummary {
   threshold?: number | null;
+  frozen_threshold?: number | null;
   reason_codes?: ReasonCode[];
   codes?: ReasonCode[];
+  raw_reason_codes?: ReasonCode[];
+  semantic_reason_codes?: ReasonCode[];
+  shap_reason_codes?: ReasonCode[];
   recorded_narrative?: NarrativeView | null;
   narrative?: NarrativeView | null;
+  deterministic_brief?: string | NarrativeView | null;
+  guarded_llm_brief?: string | NarrativeView | null;
+  llm_brief?: string | NarrativeView | null;
+  explanation_comparison?: {
+    raw_reason_codes?: ReasonCode[];
+    deterministic_brief?: string | NarrativeView | null;
+    guarded_llm_brief?: string | NarrativeView | null;
+    llm_candidate?: Record<string, unknown> | null;
+    llm_brief?: string | NarrativeView | null;
+    delivered_brief?: string | NarrativeView | null;
+    validation?: OperationalValidation | null;
+    minimized_payload?: string | Record<string, unknown> | null;
+  };
   source_run_ids?: string[];
   data_sent_to_llm?: {
-    payload?: string;
+    payload?: string | Record<string, unknown>;
     included?: string[];
     excluded?: string[];
   };
+  minimized_payload?: string | Record<string, unknown> | null;
+  validation?: OperationalValidation | null;
+  fallback_reason?: string | null;
+  synthetic?: boolean;
   provenance?: ProvenanceResponse;
+}
+
+export interface OperationalValidation {
+  passed?: boolean;
+  fallback?: boolean;
+  fallback_reason?: string | null;
+  checks?: Partial<GuardrailChecks>;
+  check_reasons?: Partial<Record<GuardrailCheckName, string | null>>;
+  [key: string]: unknown;
 }
 
 export interface LiveNarrativeResponse extends NarrativeView {
@@ -178,7 +247,10 @@ export interface RateEstimate {
   n: number;
   ci_low?: number;
   ci_high?: number;
+  lower?: number;
+  upper?: number;
   by_construction?: boolean;
+  label?: string;
 }
 
 export interface ExplanationArmResult {
@@ -195,6 +267,7 @@ export interface ExplanationArmResult {
 
 export interface ResultsResponse {
   detector_results: DetectorResult[];
+  detector_result_rows?: DetectorResult[];
   explanation_results?: {
     explained_cases?: number;
     strict?: ExplanationArmResult;
@@ -212,6 +285,47 @@ export interface ResultsResponse {
     results_manifest_sha256?: string;
     source_run_ids?: string[];
   };
+}
+
+export interface OperationalResultsResponse {
+  synthetic: true;
+  metrics: {
+    test?: Record<string, number | string | boolean | null>;
+    val?: Record<string, number | string | boolean | null>;
+    [key: string]: unknown;
+  };
+  explanation_summary: {
+    rows?: number;
+    cases?: number;
+    fallbacks?: number;
+	    fallback_rate?: number | RateEstimate;
+	    fallback_rate_wilson?: { rate: number; n: number; lower?: number; upper?: number };
+	    transport_failure_rate?: RateEstimate;
+	    validator_failure_rate?: RateEstimate;
+	    deterministic_delivered_detected_violation_rate?: RateEstimate;
+	    llm_latency_ms_mean?: number;
+	    llm_latency_ms_n?: number;
+    transport_failures?: number;
+    validator_failures?: number;
+    structural_descriptors?: {
+      payload_fields?: string[];
+      evidence_fields?: string[];
+      validator_checks?: string[];
+      top_k?: number;
+      corpus_version?: string;
+    };
+    [key: string]: unknown;
+  };
+  validator_calibration?: {
+    passed?: boolean;
+    n?: number;
+    corpus_version?: string;
+    attack_interception?: { rate: number; n: number; lower?: number; upper?: number };
+    control_acceptance?: { rate: number; n: number; lower?: number; upper?: number };
+    [key: string]: unknown;
+  } | null;
+  case_count: number;
+  provenance: OperationalProvenanceResponse;
 }
 
 export interface WorkflowRecord {

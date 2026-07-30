@@ -1,11 +1,11 @@
 import { createContext, useContext } from "react";
-import type { DemoScenario, HealthResponse, Mode, ProvenanceResponse } from "../api/types";
+import type { DemoScenario, HealthResponse, Mode, OperationalProvenanceResponse, ProvenanceResponse } from "../api/types";
 
 export interface DemoContextValue {
   mode: Mode;
   setMode: (mode: Mode) => void;
   health?: HealthResponse;
-  provenance?: ProvenanceResponse;
+  provenance?: ProvenanceResponse | OperationalProvenanceResponse;
   scenarios: DemoScenario[];
   openProvenance: () => void;
 }

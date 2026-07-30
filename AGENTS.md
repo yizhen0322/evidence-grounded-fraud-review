@@ -6,16 +6,29 @@ These rules are non-negotiable. If a user request conflicts with a rule here, st
 ## Project summary
 
 Sunway University BCS (Hons) Capstone Project 2 by Ng Yi Zhen (23076003).
-Title: **"Credit Card Fraud Detection using a Hybrid Autoencoder-XGBoost Model with Local LLM Explanations"**.
-Pipeline: AE + XGBoost detection → imbalance handling (SMOTE / cost-sensitive) → SHAP reason codes → local LLM (Ollama) narrative → faithfulness verification.
+Title: **"Evidence-Grounded Local-LLM Explanations for Credit Card Fraud Alert Review"**.
+Pipeline: supporting detector benchmark → frozen model evidence → SHAP reason codes → local LLM (Ollama) candidate → deterministic validation and fallback → analyst review.
 Dataset: European Credit Card Fraud dataset (ULB/Kaggle): 284,807 transactions, 492 frauds (0.172%), features V1–V28 (PCA), Time, Amount, Class.
 
-The approved methodology is in `../Proposal_Capstone_Project.pdf` (Chapter 3). Do not silently change the methodology; propose changes to the user first.
+The completed project has one research contribution: an evaluated fail-closed
+delivery boundary for evidence-grounded local-LLM explanations. ULB is the
+supporting real-data detector benchmark and anonymous-feature prompt stress test.
+S0 is the primary semantic and operational evaluation context for the explanation
+layer and the default analyst experience. The detector comparison, S0 stream, and
+application are supporting parts of that single contribution, not separate FYP
+topics. S0 remains synthetic and is never compared directly with G0–G7.
+
+The two report-level research questions are:
+
+1. Under the tested evidence contracts, how effectively can deterministic guardrails detect local-LLM output violations and enforce fail-closed delivery for fraud alert briefs?
+2. In an analyst-facing fraud alert workflow, what information does guarded local-LLM delivery add, preserve, or lose compared with raw SHAP reason codes and a deterministic brief?
+
+The approved methodology is in `../CP1/01_FINAL_SUBMISSION/Proposal_Capstone_Project.pdf` (Chapter 3). Do not silently change the methodology; propose changes to the user first.
 
 ## Research integrity (hard rules)
 
 - **Never fabricate experimental results.** Every number in a report, table, or claim must come from a logged run under `experiments/runs/`. If a result does not exist yet, say so.
-- **Never fabricate references, DOIs, authors, or quotes.** Only cite papers the user has provided (see `../paper/` and `../review.csv`) or that you have actually fetched and read.
+- **Never fabricate references, DOIs, authors, or quotes.** Only cite papers the user has provided (see `../CP1/03_RESEARCH_MATERIALS/` and `../CP2/04_REFERENCE_LIBRARY/`) or that you have actually fetched and read.
 - **Never write "improves", "outperforms", or "superior" about our models unless a logged test-set result supports it.** Report differences with the actual numbers alongside.
 - Do not claim the system is "privacy-preserving" as a proven property. Use "privacy-conscious local deployment" / "locally deployed explanation architecture with data minimization" unless the report explicitly scopes the claim.
 - Report negative or null results honestly. A hybrid model that does NOT beat the baseline is still a valid CP2 finding.
@@ -46,6 +59,13 @@ The approved methodology is in `../Proposal_Capstone_Project.pdf` (Chapter 3). D
   - **G5** — G4 + local LLM narratives under a paired delivery-policy design: the SAME raw outputs are analysed OFF-policy (delivered raw → detected-violation prevalence) and ON-policy (validated → fallback); two prompt arms (strict / simple); the validator must pass corpus calibration (Task 6.7 gate) BEFORE the final G5 run
   - **G6** — XGBoost + `scale_pos_weight` (cost-sensitive) (= M4)
   - **G7** — AE latent (bottleneck) features + XGBoost
+- **S0** is the primary semantic and operational local-LLM evaluation context.
+  It is a separately reported synthetic case study, does not enter the G0-G7
+  detector ranking, may not revise a ULB result, and uses its own chronological
+  split, feature catalogue, structured validator, calibration corpus, and run
+  manifest. Its path follows
+  `experiments/runs/<date>_s0_seed<model-seed>/`; the generator seed is recorded
+  separately in the config and manifest.
 - Every run is driven by a YAML config in `configs/`, executed via `src/`, and writes to `experiments/runs/<date>_<group>_seed<seed>/`: `config.yaml`, `metrics.json`, `predictions.parquet`, `environment.txt`, model artifacts. Results not logged this way do not exist.
 - Fixed seeds everywhere (`random_state=42` default; multi-seed runs use 42, 43, 44, 45, 46). Log library versions.
 - `notebooks/` is for exploration only. No reported result may come from a notebook.
@@ -56,6 +76,11 @@ The approved methodology is in `../Proposal_Capstone_Project.pdf` (Chapter 3). D
 - Multi-seed experiments report mean ± std over seeds.
 - Never report plain accuracy as a headline metric (0.17% fraud rate makes it meaningless).
 - Faithfulness metrics (G5): per-check detected-violation prevalence (format / completeness / grounding / direction / any), fallback rate, validator calibration (per-category interception + false-rejection on the versioned corpus), audit-estimated undetected violation rate. **Every reported rate carries its n and a 95% Wilson CI.**
+- S0 explanation metrics: local-LLM validator-detected violation and fallback
+  rates, transport-failure rate, latency, and declared structural descriptors,
+  all with explicit denominators and Wilson intervals where applicable. Raw
+  reason-code and deterministic-renderer zero violations are labelled
+  `by_construction`, not empirical superiority.
 
 ## LLM explanation module rules
 
@@ -64,6 +89,9 @@ The approved methodology is in `../Proposal_Capstone_Project.pdf` (Chapter 3). D
 - Direction semantics: a feature whose SHAP value pushes toward fraud is "↑ risk"; toward legitimate is "↓ risk". A narrative that flips a direction is a guardrail failure, not a style issue.
 - Measurement wording (hard rules): every violation metric is a **detected** violation; never write "guardrails eliminate violations" — "residual detected violation rate on delivered narratives" is 0 by construction and must be labelled `by_construction`; the validator is a **corpus-calibrated instrument**, calibrated before it measures; the novelty claim always reads "within the reviewed literature … that we identified", never a bare "first".
 - Manual audit integrity: the `violation_found` / `violation_category` / `notes` columns of any audit sheet are filled ONLY by humans. No AI agent may fill, edit, or "correct" them. Audit scoring requires the provenance-bound sample manifest and an explicit human attestation; never infer human authorship from a CSV.
+- The S0 structured-output validator must pass its own versioned calibration
+  corpus before test-period generation. The G5 anonymous-feature corpus and its
+  calibration figures cannot be reused as evidence for S0.
 
 ## Engineering conventions
 

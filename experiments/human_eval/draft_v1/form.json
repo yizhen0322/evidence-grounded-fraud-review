@@ -1,0 +1,158 @@
+{
+  "form_version": "single",
+  "tasks": [
+    {
+      "slot": "S01",
+      "participant_label": "Case 01",
+      "source_case_id_sha256": "2536720a2dcdedf440c6ff3cc5b550ba5050f6e5463c51efeb2194ae1e5ab7aa",
+      "condition": "raw_reason_codes",
+      "risk_bucket": "High",
+      "context": "Synthetic transaction alert. Relative review priority: High.",
+      "explanation": "Ranked evidence:\n1. Terminal distance from customer home - raises risk - value bucket: far from home\n2. Amount vs customer 30-day average - raises risk - value bucket: above customer pattern\n3. Transaction amount - raises risk - value bucket: high",
+      "evidence_options": [
+        "Terminal distance from customer home",
+        "Amount vs customer 30-day average",
+        "Transaction amount"
+      ],
+      "top_evidence_expected": "Terminal distance from customer home",
+      "top_direction_expected": "up",
+      "named_evidence_count_expected": 3
+    },
+    {
+      "slot": "S04",
+      "participant_label": "Case 02",
+      "source_case_id_sha256": "6fcc0adf929a69a919a25d7cf5a0c9e4957ca81455f0631441a98c330aec8e44",
+      "condition": "deterministic_brief",
+      "risk_bucket": "Medium",
+      "context": "Synthetic transaction alert. Relative review priority: Medium.",
+      "explanation": "This above-threshold synthetic alert has Medium relative review priority.\n1. Terminal distance from customer home raises risk; value bucket: far_from_home.\n2. Amount vs customer 30-day average raises risk; value bucket: above_customer_pattern.\n3. Transaction amount raises risk; value bucket: high.",
+      "evidence_options": [
+        "Terminal distance from customer home",
+        "Amount vs customer 30-day average",
+        "Transaction amount"
+      ],
+      "top_evidence_expected": "Terminal distance from customer home",
+      "top_direction_expected": "up",
+      "named_evidence_count_expected": 3
+    },
+    {
+      "slot": "S07",
+      "participant_label": "Case 03",
+      "source_case_id_sha256": "370d7b9764d66f1dcf0c2e8ff07040b52680a389c583f8b6f0b9489963caf5cd",
+      "condition": "guarded_llm_brief",
+      "risk_bucket": "Low",
+      "context": "Synthetic transaction alert. Relative review priority: Low.",
+      "explanation": "All supplied signals raise risk, led by Terminal distance from customer home.",
+      "evidence_options": [
+        "Terminal distance from customer home",
+        "Amount vs customer 30-day average",
+        "Night-time transaction"
+      ],
+      "top_evidence_expected": "Terminal distance from customer home",
+      "top_direction_expected": "up",
+      "named_evidence_count_expected": 1
+    },
+    {
+      "slot": "S02",
+      "participant_label": "Case 04",
+      "source_case_id_sha256": "edbd3f7bea3d520354d18c0e3e7931a4996a21e03f28dff360b3d75af820b2d3",
+      "condition": "raw_reason_codes",
+      "risk_bucket": "High",
+      "context": "Synthetic transaction alert. Relative review priority: High.",
+      "explanation": "Ranked evidence:\n1. Amount vs customer 30-day average - raises risk - value bucket: above customer pattern\n2. Terminal distance from customer home - raises risk - value bucket: far from home\n3. Transaction amount - raises risk - value bucket: high",
+      "evidence_options": [
+        "Amount vs customer 30-day average",
+        "Terminal distance from customer home",
+        "Transaction amount"
+      ],
+      "top_evidence_expected": "Amount vs customer 30-day average",
+      "top_direction_expected": "up",
+      "named_evidence_count_expected": 3
+    },
+    {
+      "slot": "S05",
+      "participant_label": "Case 05",
+      "source_case_id_sha256": "2f336acf1986cba5a76102aaae5f3c6e117cb817b1a030b7f1de85860f49e324",
+      "condition": "deterministic_brief",
+      "risk_bucket": "Medium",
+      "context": "Synthetic transaction alert. Relative review priority: Medium.",
+      "explanation": "This above-threshold synthetic alert has Medium relative review priority.\n1. Amount vs customer 30-day average raises risk; value bucket: above_customer_pattern.\n2. Terminal distance from customer home raises risk; value bucket: regional.\n3. Transaction amount raises risk; value bucket: high.",
+      "evidence_options": [
+        "Amount vs customer 30-day average",
+        "Terminal distance from customer home",
+        "Transaction amount"
+      ],
+      "top_evidence_expected": "Amount vs customer 30-day average",
+      "top_direction_expected": "up",
+      "named_evidence_count_expected": 3
+    },
+    {
+      "slot": "S08",
+      "participant_label": "Case 06",
+      "source_case_id_sha256": "d1f2c6db0f087cd4c1b18abe839e6a69bc133ddf722c6cfe2d8028e62204faf0",
+      "condition": "guarded_llm_brief",
+      "risk_bucket": "Low",
+      "context": "Synthetic transaction alert. Relative review priority: Low.",
+      "explanation": "All supplied signals raise risk, led by Amount vs customer 30-day average.",
+      "evidence_options": [
+        "Amount vs customer 30-day average",
+        "Terminal distance from customer home",
+        "Night-time transaction"
+      ],
+      "top_evidence_expected": "Amount vs customer 30-day average",
+      "top_direction_expected": "up",
+      "named_evidence_count_expected": 1
+    },
+    {
+      "slot": "S03",
+      "participant_label": "Case 07",
+      "source_case_id_sha256": "7e0d40bc45672c4de7320f01c9699364614738664ea874e479b42d255c118997",
+      "condition": "raw_reason_codes",
+      "risk_bucket": "High",
+      "context": "Synthetic transaction alert. Relative review priority: High.",
+      "explanation": "Ranked evidence:\n1. Amount vs customer 30-day average - raises risk - value bucket: above customer pattern\n2. Terminal distance from customer home - raises risk - value bucket: regional\n3. Delayed terminal fraud rate - raises risk - value bucket: elevated",
+      "evidence_options": [
+        "Amount vs customer 30-day average",
+        "Terminal distance from customer home",
+        "Delayed terminal fraud rate"
+      ],
+      "top_evidence_expected": "Amount vs customer 30-day average",
+      "top_direction_expected": "up",
+      "named_evidence_count_expected": 3
+    },
+    {
+      "slot": "S06",
+      "participant_label": "Case 08",
+      "source_case_id_sha256": "f1e643eca99a815d9d0b2449fcca3f988c1d9ef9690013328d845b46de90f479",
+      "condition": "deterministic_brief",
+      "risk_bucket": "Medium",
+      "context": "Synthetic transaction alert. Relative review priority: Medium.",
+      "explanation": "This above-threshold synthetic alert has Medium relative review priority.\n1. Terminal distance from customer home raises risk; value bucket: far_from_home.\n2. Amount vs customer 30-day average raises risk; value bucket: above_customer_pattern.\n3. Night-time transaction raises risk; value bucket: yes.",
+      "evidence_options": [
+        "Terminal distance from customer home",
+        "Amount vs customer 30-day average",
+        "Night-time transaction"
+      ],
+      "top_evidence_expected": "Terminal distance from customer home",
+      "top_direction_expected": "up",
+      "named_evidence_count_expected": 3
+    },
+    {
+      "slot": "S09",
+      "participant_label": "Case 09",
+      "source_case_id_sha256": "ff1f36201bee2af76e8262347f439866de13c32b6f44502513214d473d657a1b",
+      "condition": "guarded_llm_brief",
+      "risk_bucket": "Low",
+      "context": "Synthetic transaction alert. Relative review priority: Low.",
+      "explanation": "All supplied signals raise risk, led by Terminal distance from customer home.",
+      "evidence_options": [
+        "Terminal distance from customer home",
+        "Amount vs customer 30-day average",
+        "Night-time transaction"
+      ],
+      "top_evidence_expected": "Terminal distance from customer home",
+      "top_direction_expected": "up",
+      "named_evidence_count_expected": 1
+    }
+  ]
+}

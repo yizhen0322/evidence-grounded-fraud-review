@@ -7,9 +7,9 @@ from collections.abc import Callable
 from typing import Any
 
 from app.backend.artifacts import DashboardSnapshot
+from app.backend.evidence import serialize_operational_evidence
 from app.backend.schemas import check_states
 from app.backend.settings import DashboardSettings
-from src.narratives.evidence import serialize_evidence
 from src.narratives.guardrails import fallback_text, validate_narrative
 from src.narratives.llm_client import (
     LLMUnavailable,
@@ -48,7 +48,7 @@ class LiveNarrativeService:
     def generate(self, case_id: int) -> dict[str, Any]:
         case = self._snapshot.case(case_id)
         record = case.guardrail_record()
-        evidence = serialize_evidence(record)
+        evidence = serialize_operational_evidence(record)
         started = time.perf_counter()
         try:
             generated = self._generate(
@@ -65,7 +65,6 @@ class LiveNarrativeService:
                 "mode": "live_demo",
                 "reported": False,
                 "case_id": case.case_id,
-                "raw_text": None,
                 "final_text": fallback_text(record),
                 "checks": check_states(None),
                 "fallback": True,
@@ -81,7 +80,6 @@ class LiveNarrativeService:
             "mode": "live_demo",
             "reported": False,
             "case_id": case.case_id,
-            "raw_text": raw_text,
             "final_text": result.final_text,
             "checks": check_states(result.checks),
             "fallback": result.fallback,
