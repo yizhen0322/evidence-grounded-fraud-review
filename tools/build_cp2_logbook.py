@@ -17,8 +17,7 @@ from docx.shared import Inches, Pt, RGBColor
 from docx.table import Table
 
 
-BLUE = RGBColor(31, 78, 121)
-GREY = RGBColor(89, 89, 89)
+BLACK = RGBColor(0, 0, 0)
 
 
 @dataclass(frozen=True)
@@ -151,16 +150,70 @@ def parse_weeks(source: Path) -> list[WeekEntry]:
     return entries
 
 
-def set_run_font(run, size: float, *, bold: bool = False, italic: bool = False, color=None) -> None:
-    run.font.name = "Arial"
-    run._element.get_or_add_rPr().rFonts.set(qn("w:ascii"), "Arial")
-    run._element.get_or_add_rPr().rFonts.set(qn("w:hAnsi"), "Arial")
-    run._element.get_or_add_rPr().rFonts.set(qn("w:eastAsia"), "Arial")
+def set_run_font(
+    run,
+    size: float,
+    *,
+    name: str = "Cambria",
+    bold: bool = False,
+    italic: bool = False,
+    color=BLACK,
+) -> None:
+    run.font.name = name
+    run._element.get_or_add_rPr().rFonts.set(qn("w:ascii"), name)
+    run._element.get_or_add_rPr().rFonts.set(qn("w:hAnsi"), name)
+    run._element.get_or_add_rPr().rFonts.set(qn("w:eastAsia"), name)
     run.font.size = Pt(size)
     run.bold = bold
     run.italic = italic
     if color is not None:
         run.font.color.rgb = color
+
+
+def set_style_monochrome(doc: Document, style_name: str, *, font_name: str) -> None:
+    style = doc.styles[style_name]
+    style.font.name = font_name
+    style._element.get_or_add_rPr().rFonts.set(qn("w:ascii"), font_name)
+    style._element.get_or_add_rPr().rFonts.set(qn("w:hAnsi"), font_name)
+    style._element.get_or_add_rPr().rFonts.set(qn("w:eastAsia"), font_name)
+    style.font.color.rgb = BLACK
+
+    p_pr = style._element.get_or_add_pPr()
+    borders = p_pr.find(qn("w:pBdr"))
+    if borders is not None:
+        for border in borders:
+            border.set(qn("w:color"), "000000")
+            border.attrib.pop(qn("w:themeColor"), None)
+
+
+def format_cover(doc: Document) -> None:
+    set_style_monochrome(doc, "Title", font_name="Arial")
+    set_style_monochrome(doc, "Heading 1", font_name="Arial")
+
+    for paragraph in doc.paragraphs[:6]:
+        for run in paragraph.runs:
+            current_size = run.font.size.pt if run.font.size else 12.0
+            set_run_font(
+                run,
+                current_size,
+                name="Arial",
+                bold=bool(run.bold),
+                italic=bool(run.italic),
+            )
+
+    cover = doc.tables[0]
+    for row in cover.rows:
+        for cell in row.cells:
+            for paragraph in cell.paragraphs:
+                for run in paragraph.runs:
+                    current_size = run.font.size.pt if run.font.size else 12.0
+                    set_run_font(
+                        run,
+                        current_size,
+                        name="Arial",
+                        bold=bool(run.bold),
+                        italic=bool(run.italic),
+                    )
 
 
 def clear_paragraph(paragraph) -> None:
@@ -169,14 +222,14 @@ def clear_paragraph(paragraph) -> None:
             paragraph._p.remove(child)
 
 
-def set_cell_text(cell, text: str, size: float = 11.5) -> None:
+def set_cell_text(cell, text: str, size: float = 11.5, *, name: str = "Cambria") -> None:
     paragraph = cell.paragraphs[0]
     clear_paragraph(paragraph)
     paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT
     paragraph.paragraph_format.space_before = Pt(0)
     paragraph.paragraph_format.space_after = Pt(0)
     run = paragraph.add_run(text)
-    set_run_font(run, size)
+    set_run_font(run, size, name=name)
     cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
 
 
@@ -206,10 +259,10 @@ def set_repeat_table_layout(table: Table) -> None:
         for cell in row.cells:
             set_cell_margins(cell)
     for row in table.rows:
-        set_cell_text(row.cells[0], row.cells[0].text.strip(), 10.5)
+        set_cell_text(row.cells[0], row.cells[0].text.strip(), 11.0)
 
 
-def add_compact_paragraph(doc: Document, label: str, text: str, *, size: float = 9.5, after: float = 3.0):
+def add_compact_paragraph(doc: Document, label: str, text: str, *, size: float = 10.5, after: float = 4.0):
     paragraph = doc.add_paragraph()
     paragraph.paragraph_format.line_spacing_rule = WD_LINE_SPACING.SINGLE
     paragraph.paragraph_format.space_before = Pt(0)
@@ -228,24 +281,49 @@ def add_week_heading(doc: Document, entry: WeekEntry, *, include_template_headin
     if include_template_heading:
         heading = doc.add_paragraph(style="Heading 1")
         heading.paragraph_format.space_before = Pt(0)
-        heading.paragraph_format.space_after = Pt(6)
+        heading.paragraph_format.space_after = Pt(8)
         heading_run = heading.add_run("Weekly Entry Template")
-        set_run_font(heading_run, 14.5, bold=True, color=BLUE)
+        set_run_font(heading_run, 14.0, bold=True)
+
+
+def split_activity_bullets(text: str, max_bullets: int = 4) -> list[str]:
+    sentences = [
+        sentence.strip()
+        for sentence in re.split(r"(?<=[.!?])\s+(?=[A-Z0-9])", text)
+        if sentence.strip()
+    ]
+    if len(sentences) <= max_bullets:
+        return sentences
+    groups: list[list[str]] = [[] for _ in range(max_bullets)]
+    for index, sentence in enumerate(sentences):
+        groups[min(index * max_bullets // len(sentences), max_bullets - 1)].append(sentence)
+    return [" ".join(group) for group in groups if group]
+
+
+def add_activity_bullet(doc: Document, text: str, *, italic: bool = False, size: float = 10.2) -> None:
+    paragraph = doc.add_paragraph(style="List Bullet")
+    paragraph.paragraph_format.left_indent = Inches(0.28)
+    paragraph.paragraph_format.first_line_indent = Inches(-0.16)
+    paragraph.paragraph_format.line_spacing_rule = WD_LINE_SPACING.SINGLE
+    paragraph.paragraph_format.space_before = Pt(0)
+    paragraph.paragraph_format.space_after = Pt(2)
+    run = paragraph.add_run(text)
+    set_run_font(run, size, italic=italic)
 
 
 def add_signature_table(doc: Document, signature_path: Path | None) -> None:
-    table = doc.add_table(rows=2, cols=2)
+    table = doc.add_table(rows=1, cols=4)
     table.alignment = WD_TABLE_ALIGNMENT.CENTER
     table.autofit = False
-    table.columns[0].width = Inches(3.05)
-    table.columns[1].width = Inches(3.05)
+    widths = (Inches(1.72), Inches(1.12), Inches(1.58), Inches(1.88))
+    for column, width in zip(table.columns, widths, strict=True):
+        column.width = width
 
     for row in table.rows:
-        row.cells[0].width = Inches(3.05)
-        row.cells[1].width = Inches(3.05)
-        for cell in row.cells:
+        for cell, width in zip(row.cells, widths, strict=True):
+            cell.width = width
             cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
-            set_cell_margins(cell, top=0, bottom=0, start=30, end=30)
+            set_cell_margins(cell, top=0, bottom=0, start=0, end=0)
             tc_pr = cell._tc.get_or_add_tcPr()
             borders = tc_pr.first_child_found_in("w:tcBorders")
             if borders is None:
@@ -258,27 +336,22 @@ def add_signature_table(doc: Document, signature_path: Path | None) -> None:
                     borders.append(tag)
                 tag.set(qn("w:val"), "nil")
 
-    for index, label in enumerate(("Supervisor’s Signature", "Student’s Signature")):
-        paragraph = table.rows[0].cells[index].paragraphs[0]
-        paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    labels = ("Supervisor’s Signature:", "________________", "Student’s Signature:")
+    for cell, text in zip(table.rows[0].cells[:3], labels, strict=True):
+        paragraph = cell.paragraphs[0]
+        paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT
         paragraph.paragraph_format.space_after = Pt(0)
-        run = paragraph.add_run(label)
-        set_run_font(run, 9.5)
+        run = paragraph.add_run(text)
+        set_run_font(run, 10.0)
 
-    supervisor = table.rows[1].cells[0].paragraphs[0]
-    supervisor.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    supervisor.paragraph_format.space_after = Pt(0)
-    line = supervisor.add_run("____________________________")
-    set_run_font(line, 9.5)
-
-    student = table.rows[1].cells[1].paragraphs[0]
+    student = table.rows[0].cells[3].paragraphs[0]
     student.alignment = WD_ALIGN_PARAGRAPH.CENTER
     student.paragraph_format.space_after = Pt(0)
     if signature_path is None:
-        line = student.add_run("____________________________")
-        set_run_font(line, 9.5)
+        line = student.add_run("____________________")
+        set_run_font(line, 10.0)
     else:
-        student.add_run().add_picture(str(signature_path), width=Inches(1.18))
+        student.add_run().add_picture(str(signature_path), width=Inches(1.08))
 
 
 def remove_template_body(doc: Document) -> None:
@@ -309,28 +382,14 @@ def add_week(
     doc._element.body.insert(-1, table_xml)
     table = Table(table_xml, doc)
     set_repeat_table_layout(table)
-    set_cell_text(table.rows[0].cells[1], str(entry.number), 10.5)
-    set_cell_text(table.rows[1].cells[1], entry.date_range, 10.5)
-
-    title = doc.add_paragraph()
-    title.paragraph_format.space_before = Pt(5)
-    title.paragraph_format.space_after = Pt(4)
-    title.paragraph_format.keep_with_next = True
-    title_run = title.add_run(f"Week {entry.number}: {entry.title}")
-    set_run_font(title_run, 10.5, bold=True, color=BLUE)
+    set_cell_text(table.rows[0].cells[1], str(entry.number), 11.0)
+    set_cell_text(table.rows[1].cells[1], entry.date_range, 11.0)
 
     add_compact_paragraph(doc, "Objectives for the Week:", entry.objective)
-    add_compact_paragraph(doc, "Activities Completed:", entry.activities)
-
-    evidence = doc.add_paragraph()
-    evidence.paragraph_format.line_spacing_rule = WD_LINE_SPACING.SINGLE
-    evidence.paragraph_format.space_before = Pt(0)
-    evidence.paragraph_format.space_after = Pt(3)
-    evidence.alignment = WD_ALIGN_PARAGRAPH.LEFT
-    evidence_label = evidence.add_run("Evidence/files:")
-    set_run_font(evidence_label, 8.5, bold=True, italic=True, color=GREY)
-    evidence_run = evidence.add_run(" " + entry.evidence)
-    set_run_font(evidence_run, 8.5, italic=True, color=GREY)
+    add_compact_paragraph(doc, "Activities Completed:", "", after=2.0)
+    for bullet in split_activity_bullets(entry.activities):
+        add_activity_bullet(doc, bullet)
+    add_activity_bullet(doc, "Supporting evidence: " + entry.evidence, italic=True, size=9.2)
 
     add_compact_paragraph(doc, "Challenges Encountered (if any):", entry.challenge)
     add_compact_paragraph(doc, "Solutions / Actions Taken (if any):", SOLUTION_ACTIONS[entry.number])
@@ -339,8 +398,8 @@ def add_week(
     add_compact_paragraph(
         doc,
         "Supervisor's Feedback (if any):",
-        SUPERVISOR_FEEDBACK.get(entry.number, "—"),
-        after=1.5,
+        SUPERVISOR_FEEDBACK.get(entry.number, "________________"),
+        after=2.0,
     )
     add_signature_table(doc, signature_path)
 
@@ -360,7 +419,9 @@ def build(source: Path, template: Path, output: Path, signature_path: Path | Non
         "Dr Tang Tiong Yew",
     )
     for index, (row, value) in enumerate(zip(cover.rows, cover_values, strict=True)):
-        set_cell_text(row.cells[1], value, 10.8 if index == 3 else 11.5)
+        set_cell_text(row.cells[1], value, 10.8 if index == 3 else 11.5, name="Arial")
+
+    format_cover(doc)
 
     remove_template_body(doc)
     for index, entry in enumerate(entries):
