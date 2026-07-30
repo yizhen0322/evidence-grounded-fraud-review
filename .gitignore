@@ -27,3 +27,9 @@ experiments/runs/*superseded*/
 supervisor_meeting/
 releases/
 ~$*
+docs/reviews/
+reports/thesis/references/
+reports/thesis/submission/SUBMISSION_README.md
+reports/thesis/submission/VERIFICATION_RECORD.md
+reports/presentation/*Review*.md
+reports/FINAL_SUBMISSION_INDEX.md
