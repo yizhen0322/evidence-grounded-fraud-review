@@ -238,6 +238,8 @@ Table 2.1. Literature streams, limitations, and implemented responses
 | Analyst dashboards | Scores and explanations | Demo state can be mixed with research evidence | Separate immutable evidence from workflow metadata |
 | Synthetic fraud streams | Reproducible temporal fraud data | Synthetic realism is not real-bank validity | Use a primary semantic and operational evaluation track with explicit simulation boundaries |
 
+As shown in Table 2.1, the reviewed streams address separate parts of the problem. This project combines them within one evaluation boundary covering detector evidence, constrained narrative generation, deterministic validation, fallback, and separated workflow state.
+
 Table 2.2 sets out the four properties most closely related to the explanation-delivery contribution. The coding refers to the evaluated design reported by each study, rather than to every possible extension of that work.
 
 Table 2.2. Prior-work comparison for guarded narrative delivery
@@ -250,7 +252,7 @@ Table 2.2. Prior-work comparison for guarded narrative delivery
 | Martens et al. (2025) | Not reported | Not reported | No | Not reported |
 | This project | Yes | Yes | Yes | Yes |
 
-`Partial` has a specific meaning in this comparison. Explingo describes an LLM-grader threshold that can reject a narrative and revert to a graph-based explanation, but the acceptance gate is itself stochastic; its main experiments use GPT-4o through an API, while a smaller local model is examined separately (Zytek et al., 2024). Bello et al. (2025) recommend on-premise execution for sensitive applications, although their reported case studies use GPT-4.5 illustratively and the framework remains conceptual. `Not reported` means that the property was not described as part of the evaluated design; it is not a universal proof of absence.
+Table 2.2 uses `Partial` in a specific sense. Explingo describes an LLM-grader threshold that can reject a narrative and revert to a graph-based explanation, but the acceptance gate is itself stochastic; its main experiments use GPT-4o through an API, while a smaller local model is examined separately (Zytek et al., 2024). Bello et al. (2025) recommend on-premise execution for sensitive applications, although their reported case studies use GPT-4.5 illustratively and the framework remains conceptual. `Not reported` means that the property was not described as part of the evaluated design; it is not a universal proof of absence.
 
 Within the reviewed literature, none of the compared studies evaluated all four properties together. This finding positions the contribution as a jointly evaluated delivery boundary rather than as an exhaustive priority claim over all possible prior work.
 
@@ -261,6 +263,8 @@ Within the reviewed literature, none of the compared studies evaluated all four 
 The implemented methodology comprises four connected stages. First, data preparation and detector experiments produce leakage-controlled, provenance-linked results. Second, a validation-selected detector is frozen and explained using signed SHAP contributions. Third, a local LLM converts minimised reason-code evidence into a fixed narrative format that is deterministically accepted or replaced by fallback. Fourth, a React and FastAPI workbench consumes the exact recorded artifacts while storing only analyst-created workflow metadata in a separate SQLite plane.
 
 ![Figure 3.1. CP2 system architecture and evidence boundary. The detector, G4, G5, results, figures, and manifests remain immutable. Only the separate analyst workflow plane is writable.](reports/figures/cp2_system_architecture.png)
+
+As shown in Figure 3.1, the evidence flow is one-way: immutable detector and explanation artifacts feed the workbench, while analyst changes remain in a separate workflow plane.
 
 ### 3.1.1 Objective-to-Method Mapping
 
@@ -330,7 +334,7 @@ Table 3.1. Detector configurations and experimental purpose
 | G6 | Original features, cost-sensitive XGBoost using scale_pos_weight | Test algorithm-level imbalance handling |
 | G7 | Original features plus AE latent bottleneck features, XGBoost | Test learned representation features |
 
-All groups were executed over seeds 42-46. Only G2 and G6 received a seeded 20-trial random search, having been the strongest untuned groups by validation AP. The other groups retained their predeclared defaults. This tuning asymmetry is reported as a limitation, because cross-group differences cannot be attributed solely to architecture or imbalance mechanism.
+As shown in Table 3.1, all groups were executed over seeds 42-46. Only G2 and G6 received a seeded 20-trial random search, having been the strongest untuned groups by validation AP. The other groups retained their predeclared defaults. This tuning asymmetry is reported as a limitation, because cross-group differences cannot be attributed solely to architecture or imbalance mechanism.
 
 ### 3.4.1 XGBoost Classifier
 
@@ -359,7 +363,7 @@ Table 3.2. Detector tuning budget and comparison constraint
 | G6 | 20 seeded random-search trials | Tuned after ranking among the strongest untuned groups by validation AP |
 | G7 | None | Predeclared defaults with ten frozen AE latent features |
 
-This is not an equal-budget architecture comparison. The table makes the development asymmetry explicit, and the resulting cross-group test differences are interpreted descriptively rather than as isolated causal effects of autoencoding, resampling, or class weighting.
+Table 3.2 makes clear that this is not an equal-budget architecture comparison. The resulting cross-group test differences are therefore interpreted descriptively rather than as isolated causal effects of autoencoding, resampling, or class weighting.
 
 ## 3.5 Detector Selection and Evaluation
 
@@ -453,11 +457,15 @@ The unified Alert Queue contains the 25 highest-scoring S0 test transactions, wh
 
 ![Figure 3.2. Unified Alert Queue presenting operational simulation and ULB research alerts in one analyst inbox. Source badges preserve the evidence namespace, while rank remains defined within each detector source.](reports/figures/workbench_queue.png)
 
+As shown in Figure 3.2, source badges and within-source rank allow S0 and ULB alerts to appear in one queue without implying that their detector scores share a common scale.
+
 Operational Case Review places the analyst action controls before the detailed evidence on narrower screens. It reports the frozen threshold, alert rank, readable signed SHAP contributions, coarse value buckets, synthetic amount and timestamp, and narrative delivery status. The page then presents four records side by side: raw SHAP reason codes, the complete deterministic renderer, the Ollama candidate, and the brief actually delivered to the analyst. When validation fails, the rejected candidate remains visible for audit, but the delivered panel shows deterministic fallback.
 
 The local LLM note appears as a separate, subordinate record. The interface labels it as a bounded candidate that cannot add risk facts, change the ranking, choose the workflow action, or access identifiers and exact values removed from its payload. A distinct action panel records one of three provisional outcomes: escalate for investigation, close without escalation, or request additional information. These are workflow outcomes, not reconstructed ground-truth labels.
 
 ![Figure 3.3. Operational Case Review comparing readable SHAP reason codes, the deterministic renderer, the Ollama candidate, the delivered analyst brief, validation outcomes, and the minimised payload for one synthetic alert.](reports/figures/workbench_investigation.png)
+
+Figure 3.3 shows the evidence hierarchy within a case: the SHAP-derived reasons and deterministic brief remain visible alongside the LLM candidate, validator outcome, and analyst-visible delivered output.
 
 ### 3.11.3 Narrative Service Boundary and Failure Handling
 
@@ -489,7 +497,7 @@ Table 3.3. S0 semantic feature catalogue and operational meaning
 | DuringNight | Transaction occurred from midnight through 06:00 | Current timestamp only |
 | DuringWeekend | Transaction occurred on Saturday or Sunday | Current timestamp only |
 
-The S0 detector is a cost-sensitive XGBoost classifier that uses 160 trees, a maximum depth of 4, a learning rate of 0.05, subsample 0.9, column sampling 0.9, and the training-derived class weight. It produces a score for every transaction. The registered configuration selects the 25 highest-scoring test transactions for the explanation comparison. In this frozen run, the detector also flagged exactly 25 transactions at the validation-selected threshold, comprising 18 true positives and 7 false positives. The configured top-25 set is therefore identical to the complete above-threshold set for this run, with no flagged alert truncated and no below-threshold transaction admitted. This equality is a property of the frozen result, not of the general selection rule.
+Table 3.3 shows how each readable S0 feature is tied to a current field, past-only history, a static synthetic profile, or delayed label feedback. The S0 detector is a cost-sensitive XGBoost classifier that uses 160 trees, a maximum depth of 4, a learning rate of 0.05, subsample 0.9, column sampling 0.9, and the training-derived class weight. It produces a score for every transaction. The registered configuration selects the 25 highest-scoring test transactions for the explanation comparison. In this frozen run, the detector also flagged exactly 25 transactions at the validation-selected threshold, comprising 18 true positives and 7 false positives. The configured top-25 set is therefore identical to the complete above-threshold set for this run, with no flagged alert truncated and no below-threshold transaction admitted. This equality is a property of the frozen result, not of the general selection rule.
 
 For each selected alert, S0 derives the top three signed SHAP contributions and compares three evidence presentations. The first is the raw reason-code list. The second is a deterministic brief generated directly from the feature catalogue, contribution directions, rank, and coarse value buckets. The third is a guarded local-LLM brief generated through Ollama with llama3:8b. The minimised LLM payload contains the relative review-priority bucket, three ranked evidence items (each containing rank, feature key, display label, direction, and coarse value bucket), and two complete summary options generated deterministically from the same evidence. One option names all three evidence items and the other names only the leading signal. The prompt requires the model to select one option exactly and to copy the structured evidence without alteration. It does not receive customer ID, terminal ID, transaction ID, exact amount, detector score or probability, historical label, or SHAP magnitude.
 
@@ -539,7 +547,7 @@ Table 4.1. Dataset integrity and seed-42 split counts
 | Seed-42 validation split | 42,559 | 71 | 0.1668% |
 | Seed-42 test split | 42,559 | 71 | 0.1668% |
 
-The dataset SHA-256 was `76274b691b16a6c49d3f159c883398e03ccd6d1ee12d9d8ee38f4b4b98551a89`. Split audits confirmed disjoint stable case IDs and complete coverage of the data after deduplication. The detector leakage audit confirmed that scaling, AE fitting, and SMOTE drew on no validation or test observations.
+As shown in Table 4.1, the seed-42 split preserved approximately the same fraud prevalence after deduplication across the training, validation, and test partitions. The dataset SHA-256 was `76274b691b16a6c49d3f159c883398e03ccd6d1ee12d9d8ee38f4b4b98551a89`. Split audits confirmed disjoint stable case IDs and complete coverage of the data after deduplication. The detector leakage audit confirmed that scaling, AE fitting, and SMOTE drew on no validation or test observations.
 
 ## 4.2 Supporting Detector Benchmark
 
@@ -556,7 +564,7 @@ Table 4.2. Five-seed detector performance, reported as mean ± sample standard d
 | G6 | 0.855214 ± 0.027097 | 0.955540 ± 0.040615 | 0.769014 ± 0.074262 | 0.849037 ± 0.031311 |
 | G7 | 0.854767 ± 0.014410 | 0.925863 ± 0.043737 | 0.816901 ± 0.041063 | 0.866858 ± 0.024778 |
 
-G2 exceeded G0 by only 0.000816 in mean AP, which gives little evidence that reconstruction error materially improved discrimination. G3 fell 0.036021 below G0 and had the largest standard deviation, indicating lower and less stable performance under the reconstruction-error plus SMOTE configuration. G7 came close to the leading AP groups but did not establish a clear hybrid advantage.
+As shown in Table 4.2, G2 exceeded G0 by only 0.000816 in mean AP, which gives little evidence that reconstruction error materially improved discrimination. G3 fell 0.036021 below G0 and had the largest standard deviation, indicating lower and less stable performance under the reconstruction-error plus SMOTE configuration. G7 came close to the leading AP groups but did not establish a clear hybrid advantage.
 
 Figure 4.1 presents the same five-seed comparison across several metrics. Panel a shows mean F1 with sample standard-deviation error bars, panel b the precision and recall trade-off, and panel c the resulting false-positive and false-negative burden. G2 had the highest mean F1, G6 the highest mean precision and the lowest mean false-positive count, and G7 the highest mean recall and the lowest mean false-negative count. No group led every measure.
 
@@ -564,7 +572,7 @@ For operations, G6 and G7 represent different review policies rather than a simp
 
 ![Figure 4.1. Detector metric comparison across five fixed seeds. a, Mean test F1 with sample standard-deviation error bars. G6 is coloured separately because it is the frozen detector used downstream, not because it has the highest F1. b, Mean test precision and recall. c, Mean false-positive and false-negative counts with sample standard-deviation error bars. Each bar summarises n = 5 seeds. Source data: reports/tables/results_summary.csv.](reports/figures/detector_metric_bars.png)
 
-Ranked-alert and runtime measures were recorded for every run. Across the six groups, mean Precision@100 ranged from 0.598 to 0.606 and mean Recall@100 from 0.842 to 0.854. Appendix E reports the per-group mean and sample standard deviation for ROC-AUC, Precision@100, Recall@100, confusion counts, training time, and test inference time. Seed-level results and manifest identifiers remain available in full in the electronic project repository.
+Figure 4.1 shows that no detector dominated every operational measure: G6 reduced false-positive review burden, whereas G7 reduced missed fraud at the reported thresholds. Ranked-alert and runtime measures were also recorded for every run. Across the six groups, mean Precision@100 ranged from 0.598 to 0.606 and mean Recall@100 from 0.842 to 0.854. Appendix E reports the per-group mean and sample standard deviation for ROC-AUC, Precision@100, Recall@100, confusion counts, training time, and test inference time. Seed-level results and manifest identifiers remain available in full in the electronic project repository.
 
 ![Figure 4.2. Seed-42 precision-recall curves for the six detector groups. The curves are seed-specific and are not mean curves across five seeds.](reports/figures/pr_curves.png)
 
@@ -588,9 +596,11 @@ Table 4.3. Frozen G6 seed-42 performance at the validation-selected threshold
 | True positives / false positives | 50 / 1 |
 | False negatives / true negatives | 21 / 42,487 |
 
-G4 generated one local reason-code record for each flagged case. In the separate 2,000-row global explanation sample, mean absolute SHAP importance ranked V14, V4, V12, V3, and V11 as the five highest features. V14 also ranked first in each of the 51 flagged-case evidence packages and appeared as an increasing-risk contribution in 50 of them. V10 appeared in 49 packages and V12 in 44, and 42 of the 51 packages contained the same V14, V10, and V12 trio in one of two rank orders. The repeated anonymous reason-code patterns are therefore a property of the frozen detector's concentrated attribution pattern on this dataset rather than an artefact introduced by the workbench interface. SHAP remains a non-causal model-attribution method, and the anonymised feature identifiers limit direct business interpretation.
+Table 4.3 records the frozen operating point and its resulting confusion counts. G4 generated one local reason-code record for each of the 51 flagged cases. In the separate 2,000-row global explanation sample, mean absolute SHAP importance ranked V14, V4, V12, V3, and V11 as the five highest features. V14 also ranked first in each of the 51 flagged-case evidence packages and appeared as an increasing-risk contribution in 50 of them. V10 appeared in 49 packages and V12 in 44, and 42 of the 51 packages contained the same V14, V10, and V12 trio in one of two rank orders. The repeated anonymous reason-code patterns are therefore a property of the frozen detector's concentrated attribution pattern on this dataset rather than an artefact introduced by the workbench interface. SHAP remains a non-causal model-attribution method, and the anonymised feature identifiers limit direct business interpretation.
 
 ![Figure 4.3. Global mean absolute SHAP importance for a random sample of 2,000 complete seed-42 test rows, selected with random_state=42. Importance describes the frozen model's attribution pattern, not causal fraud drivers.](reports/figures/shap_global_bar.png)
+
+As shown in Figure 4.3, V14 has the largest global mean absolute SHAP importance, which helps explain why many flagged cases contain similar V14-led reason-code patterns.
 
 ## 4.4 Validator Calibration
 
@@ -605,7 +615,7 @@ Table 4.4. Validator calibration outcomes within the versioned synthetic corpus
 | Faithful controls accepted | 318/318 | 100% | 98.81%-100% |
 | Faithful controls falsely rejected | 0/318 | 0% | 0%-1.19% |
 
-These results are deliberately restricted to the synthetic corpus. A separate adversarial test constructed faithful English paraphrases that fell outside the accepted phrase grammar, and the validator rejected them. The calibration result therefore demonstrates consistency within a defined language contract, not universal natural-language understanding.
+As shown in Table 4.4, the validator intercepted all versioned attacks and accepted all faithful controls within the calibration corpus. These results are deliberately restricted to that synthetic corpus. A separate adversarial test constructed faithful English paraphrases that fell outside the accepted phrase grammar, and the validator rejected them. The calibration result therefore demonstrates consistency within a defined language contract, not universal natural-language understanding.
 
 ## 4.5 Paired Strict and Simple Prompt Results
 
@@ -629,13 +639,13 @@ Table 4.5. Strict and simple prompt outcomes under paired OFF and ON policies
 | Transport unavailable | 0/51 [0%, 7.00%] | 0/51 [0%, 7.00%] |
 | Mean generation-and-validation latency | 4.843 seconds | 4.556 seconds |
 
-The per-check rows are not additive and should not be read as separate error prevalences. In the strict arm, the same two outputs failed format, grounding, and direction while retaining complete evidence bullets. In the simple arm, all 51 candidates failed the required full structure and so could not be accepted by the grounding or direction parsers, although 49 still preserved the complete ordered evidence list. The 100% direction-check failure therefore does not mean that every simple narrative semantically reversed a SHAP direction; it means that none satisfied the validator's complete accepted direction contract.
+As shown in Table 4.5, the per-check rows are not additive and should not be read as separate error prevalences. In the strict arm, the same two outputs failed format, grounding, and direction while retaining complete evidence bullets. In the simple arm, all 51 candidates failed the required full structure and so could not be accepted by the grounding or direction parsers, although 49 still preserved the complete ordered evidence list. The 100% direction-check failure therefore does not mean that every simple narrative semantically reversed a SHAP direction; it means that none satisfied the validator's complete accepted direction contract.
 
 Figure 4.4 separates three quantities that would otherwise be easy to conflate. The detected-any violation rate describes the raw text returned by Ollama. Fallback delivery describes how often the ON policy replaced that text. Accepted LLM narrative describes how often the generated candidate passed all implemented checks and was delivered without fallback. For the strict prompt, these rates were 3.92%, 3.92%, and 96.08%; for the simple prompt, they were 100%, 100%, and 0%.
 
 ![Figure 4.4. Narrative violation, fallback, and acceptance rates for the strict and simple prompt arms. Bars show the observed rate over n = 51 cases per arm. Error bars show 95% Wilson confidence intervals. Accepted LLM narrative is the complement of ON-policy fallback; it does not measure human-rated usefulness or undetected semantic error. Source data: the frozen G5 faithfulness artifact.](reports/figures/narrative_delivery_bars.png)
 
-The strict-versus-simple comparison indicates that stronger prompt constraints changed deliverability for this model, prompt pair, evidence format, and 51-case set. It does not establish that strict prompting is generally superior across LLMs or tasks. The simple arm is a negative experimental result, not a usable delivery configuration.
+As shown in Figure 4.4, stronger prompt constraints changed deliverability for this model, prompt pair, evidence format, and 51-case set. This does not establish that strict prompting is generally superior across LLMs or tasks. The simple arm is a negative experimental result, not a usable delivery configuration.
 
 The residual detected-violation value is 0/49 by construction, because the ON policy releases only narratives that pass all implemented checks. The separate blinded manual audit is not fixed by that policy: the student compared all 49 delivered strict-arm narratives with their serialised evidence and identified 0 semantic violations (0%, 95% Wilson interval 0%-7.27%). This provides direct evidence for the reviewed set, but the upper confidence bound and the single-reviewer design prevent a claim of zero general error. For sensitivity analysis, the strict arm had 0/8 outputs with a detected-any violation among development-exposed cases (0%, 95% Wilson interval 0%-32.44%) and 2/43 among previously unseen cases (4.65%, 95% Wilson interval 1.28%-15.46%). The split shows that the two final strict-arm failures occurred outside the preliminary case subset, but it does not remove the development exposure from the overall experiment.
 
@@ -678,11 +688,11 @@ The Evaluation Results page presents S0 explanation-policy evidence first, inclu
 
 ![Figure 4.5. S0 Explanation Assurance with an unlisted-feature mutation. The grounding check fails while format, completeness, and direction remain passing, so the policy rejects the candidate and activates deterministic fallback.](reports/figures/workbench_narrative_assurance.png)
 
-The controlled mutations include a direction flip, an unlisted feature, and template corruption. In the direction-flip scenario, the altered direction for Terminal distance from customer home fails only the direction check. The system rejects the candidate and displays the fallback that would reach the analyst. The test leaves the recorded S0 evidence and delivered brief unchanged.
+Figure 4.5 shows that an unlisted-feature mutation fails grounding and activates fallback without changing the recorded case. The controlled mutations also include a direction flip and template corruption. In the direction-flip scenario, the altered direction for Terminal distance from customer home fails only the direction check. The system rejects the candidate and displays the fallback that would reach the analyst. The test leaves the recorded S0 evidence and delivered brief unchanged.
 
 ![Figure 4.6. S0 direction-flip assurance test. The tampered contribution direction fails the direction check, while format, completeness, and grounding remain passing. The system rejects the candidate and activates deterministic fallback.](reports/figures/workbench_guardrail_failure.png)
 
-Verification outcomes are recorded in Appendix B.
+As shown in Figure 4.6, the direction-flip mutation isolates the direction check while the other three checks remain passing. Verification outcomes are recorded in Appendix B.
 
 <!-- pagebreak -->
 
@@ -699,7 +709,7 @@ Table 4.6. S0 synthetic stream and chronological split counts
 | Validation period | 7,500 | 49 | 0.6533% | 2024-04-14 22:48:43 to 2024-05-07 06:41:39 |
 | Test period | 7,500 | 45 | 0.6000% | 2024-05-07 06:49:03 to 2024-05-29 23:56:13 |
 
-The S0 detector applied the validation-selected threshold 0.972929. Over the frozen test period it produced 18 true positives, 7 false positives, 27 false negatives, and 7,448 true negatives. Test AP was 0.544017, ROC-AUC was 0.960945, precision was 0.720000, recall was 0.400000, and F1 was 0.514286. These values describe the synthetic stream only. They are not directly comparable with the ULB benchmark because the data-generating process, feature space, prevalence, and split design all differ.
+As shown in Table 4.6, the chronological test period contained 7,500 transactions and 45 fraud cases, with a lower observed fraud prevalence than the training period. The S0 detector applied the validation-selected threshold 0.972929. Over the frozen test period it produced 18 true positives, 7 false positives, 27 false negatives, and 7,448 true negatives. Test AP was 0.544017, ROC-AUC was 0.960945, precision was 0.720000, recall was 0.400000, and F1 was 0.514286. These values describe the synthetic stream only. They are not directly comparable with the ULB benchmark because the data-generating process, feature space, prevalence, and split design all differ.
 
 Table 4.7. S0 detector performance at the validation-selected threshold
 
@@ -717,7 +727,7 @@ Table 4.7. S0 detector performance at the validation-selected threshold
 
 ![Figure 4.7. S0 detector metrics on the synthetic operational test period. Source data: reports/tables/semantic_detector_metrics.csv.](reports/figures/semantic_detector_metrics.png)
 
-The explanation comparison covered the 25 highest-scoring S0 test transactions, which in this frozen run are exactly the 25 above-threshold alerts. Their relative review-priority distribution was 7 High, 7 Medium, and 11 Low. These labels subdivide only the already-flagged score range and do not represent calibrated fraud probabilities. Each alert carried three ranked evidence items. Amount relative to the customer's 30-day average and terminal distance from the customer home profile appeared in all 25 evidence packages, night-time status in 14, transaction amount in 10, and delayed terminal fraud risk in one.
+Table 4.7 and Figure 4.7 show that the S0 operating point favoured precision over recall, producing 18 true positives and 7 false positives while leaving 27 fraud cases below threshold. The explanation comparison covered the 25 highest-scoring S0 test transactions, which in this frozen run are exactly the 25 above-threshold alerts. Their relative review-priority distribution was 7 High, 7 Medium, and 11 Low. These labels subdivide only the already-flagged score range and do not represent calibrated fraud probabilities. Each alert carried three ranked evidence items. Amount relative to the customer's 30-day average and terminal distance from the customer home profile appeared in all 25 evidence packages, night-time status in 14, transaction amount in 10, and delayed terminal fraud risk in one.
 
 The semantic calibration corpus contained 150 attack cases and 40 faithful controls. The validator intercepted 150/150 attacks, corresponding to 100% with a 95% Wilson interval of 97.50%-100%, and accepted 40/40 faithful controls, corresponding to 100% with a 95% Wilson interval of 91.24%-100%. The attack categories were direction flip, invented evidence, missing evidence, reordered ranks, unauthorised number, and unknown summary claim. These rates apply only to the versioned semantic corpus and do not demonstrate universal semantic correctness.
 
@@ -733,7 +743,7 @@ Table 4.8. S0 explanation assurance outcomes
 
 ![Figure 4.8. S0 explanation assurance outcomes. The deterministic fallback rate equals the validator failure rate for the selected 25 alerts because there were no transport failures. Source data: reports/tables/semantic_explanation_assurance.csv.](reports/figures/semantic_explanation_assurance.png)
 
-The guarded LLM passed validation for 23/25 briefs and activated deterministic fallback for 2/25. Both rejected candidates returned only one structured evidence item, even though the minimised payload contained three ranked items, and both copied the rank-one evidence value bucket, `regional`, into the separate review-priority field. These two coupled defects caused all four reported checks to fail: the invalid review-priority value failed format, while the shortened evidence list caused the completeness, grounding, and direction comparisons to fail. The malformed candidates were retained for audit, and the deterministic brief was delivered as the analyst-facing output. The mean local Ollama request latency across the 25 calls was 21.932 seconds, measured before deterministic validation, and no transport failures occurred. The 25 delivered outputs contained zero validator-detected violations by construction, because the two rejected candidates were replaced by deterministic briefs.
+As shown in Table 4.8 and Figure 4.8, the guarded LLM passed validation for 23/25 briefs and activated deterministic fallback for 2/25. Both rejected candidates returned only one structured evidence item, even though the minimised payload contained three ranked items, and both copied the rank-one evidence value bucket, `regional`, into the separate review-priority field. These two coupled defects caused all four reported checks to fail: the invalid review-priority value failed format, while the shortened evidence list caused the completeness, grounding, and direction comparisons to fail. The malformed candidates were retained for audit, and the deterministic brief was delivered as the analyst-facing output. The mean local Ollama request latency across the 25 calls was 21.932 seconds, measured before deterministic validation, and no transport failures occurred. The 25 delivered outputs contained zero validator-detected violations by construction, because the two rejected candidates were replaced by deterministic briefs.
 
 Setting the three formats side by side shows how the model behaved within this unusually tight contract. For every case, the prompt offered two complete deterministic summary options: a detailed one naming all three evidence items, and a shorter one naming only the leading signal. All 23 accepted responses selected the shorter option. They therefore collapsed to two unique strings following the pattern `All supplied signals raise risk, led by X`, with Terminal distance from customer home selected in 16 cases and Amount vs customer 30-day average in 7. The accepted summaries averaged 12 words and named one evidence item, against 39.09 words and all three evidence items for the deterministic brief. The two responses that selected the detailed three-item option also corrupted the structured evidence and review-priority fields, so they were rejected and replaced by fallback. Because the prompt did not allow new evidence, this cannot be read as a failure to discover new evidence. It shows instead that, when the model was constrained to two evidence-bound renderings and otherwise satisfied the contract, it consistently delivered the less complete one. The positive result here is the delivery boundary: malformed candidates were detected and were not delivered as accepted analyst briefs.
 
@@ -747,7 +757,7 @@ Table 4.9. S0 deterministic and guarded-LLM brief comparison
 | Mean characters | 297.91 | 76.09 |
 | Mean named evidence items | 3.00 | 1.00 |
 
-These artifact-level measurements describe the delivered text; human comprehension and preference are examined separately in Section 4.8.
+As shown in Table 4.9, the accepted guarded-LLM summaries were shorter and less varied than the deterministic briefs and named one rather than three evidence items on average. These artifact-level measurements describe the delivered text; human comprehension and preference are examined separately in Section 4.8.
 
 ## 4.8 Interim Human Evaluation Results
 
@@ -770,6 +780,8 @@ Table 4.10. Interim human evaluation participant profile
 | Prior exposure to SHAP | No | 3 |
 | Prior exposure to SHAP | Not sure | 5 |
 
+As shown in Table 4.10, the sample was dominated by participants with computing or IT backgrounds and basic fraud-domain familiarity, so it should not be treated as a practising-analyst sample.
+
 Each case contained three objective comprehension checks: identifying the leading evidence item, its contribution direction, and the number of evidence items presented. Table 4.11 reports the observed accuracy with 95% Wilson intervals.
 
 Table 4.11. Interim human evaluation comprehension accuracy, n = 33 task responses per format
@@ -779,6 +791,8 @@ Table 4.11. Interim human evaluation comprehension accuracy, n = 33 task respons
 | Leading evidence item | 28/33, 84.85% [69.08%, 93.35%] | 29/33, 87.88% [72.67%, 95.18%] | 27/33, 81.82% [65.61%, 91.39%] |
 | Contribution direction | 28/33, 84.85% [69.08%, 93.35%] | 28/33, 84.85% [69.08%, 93.35%] | 26/33, 78.79% [62.25%, 89.32%] |
 | Number of evidence items | 30/33, 90.91% [76.43%, 96.86%] | 26/33, 78.79% [62.25%, 89.32%] | 24/33, 72.73% [55.78%, 84.93%] |
+
+Table 4.11 shows overlapping observed accuracy ranges across the three formats, with no comprehension check led by the guarded LLM brief.
 
 Table 4.12 reports the five-point rating items as medians with interquartile ranges. Higher values are more favourable for clarity, confidence, and evidence sufficiency; for mental effort a higher value indicates more effort and is therefore less favourable.
 
@@ -791,6 +805,8 @@ Table 4.12. Interim human evaluation rating summaries, median [Q1, Q3] over 33 r
 | Enough evidence to proceed | 3 [3, 4] | 4 [3, 4] | 3 [3, 4] |
 | Mental effort required, higher is worse | 3 [3, 4] | 3 [3, 4] | 3 [3, 4] |
 
+As shown in Table 4.12, median clarity was 4 for every format, while confidence and mental-effort medians were 3 across all three formats.
+
 At the end of the session, participants answered three format-preference questions across all reviewed cases. Table 4.13 reports the counts. A no-preference option was available only for the clarity question.
 
 Table 4.13. Interim human evaluation format preferences, n = 11 participants
@@ -801,13 +817,13 @@ Table 4.13. Interim human evaluation format preferences, n = 11 participants
 | Preferred format for a first pass | 1 | 3 | 7 | Not offered |
 | Most trustworthy format | 1 | 6 | 4 | Not offered |
 
-Participants also recorded a provisional routing action for each case. Because the workflow was blind to retrospective ground truth, these actions are workflow observations rather than correctness measures and are not scored here.
+Table 4.13 shows that perceived clarity and first-pass preference favoured the guarded LLM brief, whereas trust favoured the deterministic brief. Participants also recorded a provisional routing action for each case. Because the workflow was blind to retrospective ground truth, these actions are workflow observations rather than correctness measures and are not scored here.
 
 ![Figure 4.9. Interim human evaluation outcomes for the three explanation formats. Values summarise 33 task responses per format from 11 proxy reviewers. Accuracy error bars are 95% Wilson intervals. The intervals treat task responses as independent and do not account for clustering within participants. Source data: reports/tables/human_eval_accuracy.csv and reports/tables/human_eval_likert.csv.](reports/figures/human_eval_outcomes.png)
 
 ![Figure 4.10. Interim human evaluation format preferences. Counts show how many of the 11 participants selected each format as clearest, preferred for first-pass review, and most trustworthy. Source data: reports/tables/human_eval_preferences.csv.](reports/figures/human_eval_preferences.png)
 
-The results show a trade-off rather than a single winning format. All nine accuracy estimates fell between 72.73% and 90.91%, and the intervals overlapped across formats. The deterministic brief had the highest observed accuracy for identifying the leading evidence item, raw reason codes the highest for evidence count, and the guarded LLM brief the lowest point estimate on all three checks. Median clarity was 4 for every format, but only the guarded LLM brief had an interquartile range of [4, 4]. The deterministic brief was the only format with a median of 4 for evidence sufficiency, while confidence and mental-effort medians were 3 for all three formats. Seven participants selected the guarded LLM brief as clearest and seven selected it for first-pass review, whereas six selected the deterministic brief as most trustworthy.
+Figures 4.9 and 4.10 summarise a trade-off rather than a single winning format. All nine accuracy estimates fell between 72.73% and 90.91%, and the intervals overlapped across formats. The deterministic brief had the highest observed accuracy for identifying the leading evidence item, raw reason codes the highest for evidence count, and the guarded LLM brief the lowest point estimate on all three checks. Median clarity was 4 for every format, but only the guarded LLM brief had an interquartile range of [4, 4]. The deterministic brief was the only format with a median of 4 for evidence sufficiency, while confidence and mental-effort medians were 3 for all three formats. Seven participants selected the guarded LLM brief as clearest and seven selected it for first-pass review, whereas six selected the deterministic brief as most trustworthy.
 
 These findings do not rank the formats. Every participant saw the same cases in the same sequence, and each format was paired with the same three cases, so format is confounded with case content and presentation order, and repeated responses are clustered within participants. Together with the small proxy-reviewer sample and the synthetic alert set, these limitations restrict the result to preliminary descriptive evidence.
 
@@ -820,7 +836,7 @@ Table 4.14. Research question summary
 | RQ1 | In the ULB stress test, detected-any violations occurred in 2/51 strict outputs (3.92%, 95% Wilson interval 1.08%-13.22%) and 51/51 simple outputs (100%, 93.00%-100%); every detected failure activated fallback. The ULB validator intercepted 330/330 attacks and accepted 318/318 faithful controls within its versioned corpus. A blinded manual audit identified 0 semantic violations among the 49 delivered strict-arm narratives (0%, 95% Wilson interval 0%-7.27%). In S0, 2/25 candidates failed validation and were replaced. These results support fail-closed delivery under the tested contracts and reviewed case set, not universal semantic correctness. |
 | RQ2 | Raw SHAP reason codes preserved ranked signed evidence, and the deterministic S0 brief preserved all three evidence items with no model latency. All 23 accepted guarded-LLM summaries selected the shorter permitted option, while the two detailed responses corrupted structured fields and were rejected. The interim human evaluation added evidence from 11 proxy reviewers and 99 case reviews. Observed comprehension accuracy did not favour the guarded LLM brief on any of the three checks, and the preference and trust responses pointed in different directions. The guarded local-LLM path therefore preserved the evidence boundary through validation and fallback, but it did not demonstrate added analyst detail or higher measured comprehension. |
 
-The human evidence supporting RQ2 is interim and descriptive. Recruitment did not reach the pre-specified minimum of 18, no inferential test was run, and explanation format is confounded with case content and presentation order. The RQ2 result records what was observed under these conditions rather than a comparative ranking.
+As shown in Table 4.14, RQ1 is supported only within the tested validation and fallback contracts, while RQ2 records a bounded negative result for added detail and measured comprehension. The human evidence supporting RQ2 is interim and descriptive. Recruitment did not reach the pre-specified minimum of 18, no inferential test was run, and explanation format is confounded with case content and presentation order. The RQ2 result records what was observed under these conditions rather than a comparative ranking.
 
 ## 4.10 Supporting Detector Findings
 
@@ -916,6 +932,8 @@ Table 5.1. Achievement of project objectives
 | 4. Calibrate deterministic validators before final evaluation | Met | The ULB and S0 validators were tested on versioned attack and faithful-control corpora. The results apply only to their predefined accepted grammars. |
 | 5. Compare three explanation formats in a readable context | Partially met | Artifact comparison and an interim 11-participant pilot were completed. The pilot was below its minimum sample and used fixed cases and ordering, so it does not establish a causal format effect or analyst benefit. |
 | 6. Deliver provenance-verified evidence through a local workbench | Met | The React and FastAPI application consumes immutable experiment artifacts, separates workflow state, exposes guardrail outcomes, and retains deterministic fallback. It remains a local prototype rather than a production banking system. |
+
+As shown in Table 5.1, five objectives were met within their stated evidence boundaries, while the explanation-format comparison remained partially met because the human evaluation was interim and confounded.
 
 ## 5.3 Future Work
 
@@ -1013,6 +1031,8 @@ Table A.1. Experiment and evidence map
 | No qualitative human result was reported | Human-evaluation aggregate result, `free_text` field | No optional free-text response, quotation, or thematic coding |
 | Blinded manual semantic audit found 0 violations among 49 delivered strict-arm narratives | Completed audit worksheet, bound manifest, human attestation, and `experiments/audit/audit_result.json` | Student-conducted single-reviewer estimate, 95% Wilson interval 0%-7.27%; no inter-rater agreement or universal correctness claim |
 
+Table A.1 shows that each reported claim is paired with primary evidence and an explicit interpretation boundary.
+
 # Appendix B. Software and Reproducibility Summary
 
 Table B.1. Software and reproducibility summary
@@ -1038,7 +1058,7 @@ Table B.1. Software and reproducibility summary
 | Interim human evaluation | Frozen participant form, private raw snapshot, reproducible aggregate analysis, Wilson intervals, rating summaries, and preference counts |
 | Verification | 222 Python tests, twelve frontend component tests, eleven Playwright tests, ESLint, production build, ULB and S0 artifact validation, and 21-artifact no-write audit |
 
-The source dataset hash is `76274b691b16a6c49d3f159c883398e03ccd6d1ee12d9d8ee38f4b4b98551a89`. The final narrative experiment records the exact local model digest `365c0bd3c000a25d28ddbf732fe1c6add414de7275464c4e4d1c3b5fcb5d8ad1`. Downstream manifests identify their source runs by run ID and manifest hash, allowing the frozen G6 detector, G4 explanations, G5 narratives, aggregated results, figures, and workbench configuration to be traced as one evidence chain.
+Table B.1 summarises the implemented software and the artifact types retained for reproducibility. The source dataset hash is `76274b691b16a6c49d3f159c883398e03ccd6d1ee12d9d8ee38f4b4b98551a89`. The final narrative experiment records the exact local model digest `365c0bd3c000a25d28ddbf732fe1c6add414de7275464c4e4d1c3b5fcb5d8ad1`. Downstream manifests identify their source runs by run ID and manifest hash, allowing the frozen G6 detector, G4 explanations, G5 narratives, aggregated results, figures, and workbench configuration to be traced as one evidence chain.
 
 The frozen S0 run is `2026-07-26_s0_seed42`, with run-manifest SHA-256 `bbc18d3720b5a751568b44b45553b100da1ed229ac08443bceb8e4a3f12645c5`. `reports/semantic_results_manifest.json` binds the semantic source tables and exported figures to that run and to the exact metrics, explanation summary, and calibration hashes. The directory named `2026-07-26_s0_seed42_superseded-risk-bucket` is retained only as an audit record and is not used by the application or report.
 
@@ -1183,6 +1203,8 @@ Table E.1. Supporting detector ranking metrics, reported as mean +/- sample stan
 | G6 | 0.977474 +/- 0.005915 | 0.606000 +/- 0.011402 | 0.853521 +/- 0.016059 |
 | G7 | 0.977322 +/- 0.007290 | 0.606000 +/- 0.005477 | 0.853521 +/- 0.007714 |
 
+As shown in Table E.1, the six groups produced closely clustered ranked-alert metrics, with mean Precision@100 between 0.598 and 0.606 and mean Recall@100 between 0.842 and 0.854.
+
 Table E.2. Supporting detector confusion counts and runtime, reported as mean +/- sample standard deviation across five seeds
 
 | Group | TP | FP | FN | TN | Train seconds | Test inference seconds |
@@ -1194,4 +1216,4 @@ Table E.2. Supporting detector confusion counts and runtime, reported as mean +/
 | G6 | 54.6 +/- 5.273 | 2.8 +/- 2.775 | 16.4 +/- 5.273 | 42,485.2 +/- 2.775 | 0.946 +/- 0.126 | 0.00634 +/- 0.00086 |
 | G7 | 58.0 +/- 2.915 | 4.8 +/- 3.114 | 13.0 +/- 2.915 | 42,483.2 +/- 3.114 | 1.832 +/- 0.685 | 0.01130 +/- 0.00343 |
 
-The confusion counts reflect each seed's validation-selected threshold rather than a common test threshold. Runtime was measured on the project machine and is reported for reproducibility, not as a hardware-independent performance benchmark.
+As shown in Table E.2, the confusion counts reflect each seed's validation-selected threshold rather than a common test threshold. Runtime was measured on the project machine and is reported for reproducibility, not as a hardware-independent performance benchmark.
