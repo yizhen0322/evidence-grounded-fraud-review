@@ -280,11 +280,22 @@ def _records(frame: pd.DataFrame) -> tuple[Mapping[str, Any], ...]:
 
 def _assert_file_points_to(path: Path, expected: Path, label: str) -> None:
     try:
-        actual = Path(path.read_text().strip()).expanduser().resolve()
+        pointer = Path(path.read_text().strip()).expanduser()
     except OSError as error:
         raise ArtifactValidationError(f"cannot read {label} source pointer") from error
-    if actual != expected.resolve():
-        raise ArtifactValidationError(f"{label} source pointer does not match configured run")
+
+    actual = pointer.resolve()
+    expected = expected.resolve()
+    if actual == expected:
+        return
+
+    # Recorded manifests already bind the upstream run ID and hash. A release
+    # extracted elsewhere may retain the absolute path from its build machine,
+    # so accept relocation only when the pointer names the configured run.
+    if pointer.name == expected.name:
+        return
+
+    raise ArtifactValidationError(f"{label} source pointer does not match configured run")
 
 
 def _validate_scenarios(

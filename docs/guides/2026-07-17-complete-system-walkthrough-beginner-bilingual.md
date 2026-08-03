@@ -1817,22 +1817,16 @@ SMOTE 增加 synthetic training points，但不增加新的真实 fraud patterns
 reports/thesis/cp2_final_report.md
 ```
 
-### Generated Word report
-
-```text
-/Users/yizhen/Documents/sunway——yizhen/AAA_FYP/CP2/03_REPORT_DEVELOPMENT/Current_Full_Draft/CP2 Final Report - NG YI ZHEN - 23076003.docx
-```
-
 ### Dashboard specification
 
 ```text
 docs/specs/2026-07-14-fraud-review-workbench-spec.md
 ```
 
-### Main CP2 implementation plan
+### Workbench implementation plan
 
 ```text
-docs/plans/2026-07-13-cp2-implementation-plan.md
+docs/plans/2026-07-14-fraud-review-workbench-implementation-plan.md
 ```
 
 ### Application code

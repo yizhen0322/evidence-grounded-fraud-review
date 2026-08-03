@@ -4,9 +4,9 @@
 
 **Project:** Evidence-Grounded Credit Card Fraud Detection and Review with Local LLM Explanations and Deterministic Guardrails
 **Date:** 2026-07-13  
-**Status:** Approved design; implementation scheduled as CP2 Task 7.4  
-**Audience:** project author, implementation agents, supervisor, examiner-demo rehearsal reviewers  
-**Related plan:** `docs/plans/2026-07-13-cp2-implementation-plan.md`
+**Status:** Implemented and validated
+**Audience:** project author, maintainers, supervisor, and examiners
+**Related plan:** `docs/plans/2026-07-14-fraud-review-workbench-implementation-plan.md`
 
 ## 1. Executive decision
 
@@ -296,7 +296,7 @@ Failed states use colour, icon, text, and explanation. A red badge alone is insu
 
 #### Detector performance section
 
-Contains G0, G1, G2, G3, G6, and G7 only. Display the metrics required by `AGENTS.md`, subject to what Task 7.1 records:
+Contains G0, G1, G2, G3, G6, and G7 only. Display the metrics required by the recorded evaluation contract, subject to the finalized results manifest:
 
 - AUC-PR;
 - ROC-AUC;
@@ -939,5 +939,5 @@ The dashboard is complete only when:
 - Vite: <https://vite.dev/guide/>
 - FastAPI: <https://fastapi.tiangolo.com/>
 - Playwright: <https://playwright.dev/>
-- Project rules: `AGENTS.md`
-- Consensus execution plan: `.omx/plans/2026-07-13-react-fastapi-demo-dashboard.md`
+- Dashboard configuration: `configs/dashboard.yaml`
+- Workbench implementation plan: `docs/plans/2026-07-14-fraud-review-workbench-implementation-plan.md`

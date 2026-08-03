@@ -7,6 +7,7 @@ import pytest
 
 from app.backend.artifacts import (
     ArtifactValidationError,
+    _assert_file_points_to,
     _load_transaction_context,
     load_snapshot,
 )
@@ -34,6 +35,25 @@ def test_transaction_context_rejects_dataset_hash_mismatch(tmp_path: Path):
 
     with pytest.raises(ArtifactValidationError, match="dataset hash"):
         _load_transaction_context(dataset, "0" * 64, {0})
+
+
+def test_source_pointer_allows_relocated_release_with_same_run_id(tmp_path: Path):
+    expected = tmp_path / "release" / "experiments" / "runs" / "g6_seed42"
+    expected.mkdir(parents=True)
+    pointer = tmp_path / "source_detector_run.txt"
+    pointer.write_text("/original/workspace/experiments/runs/g6_seed42\n")
+
+    _assert_file_points_to(pointer, expected, "G4 detector")
+
+
+def test_source_pointer_rejects_different_run_id(tmp_path: Path):
+    expected = tmp_path / "release" / "experiments" / "runs" / "g6_seed42"
+    expected.mkdir(parents=True)
+    pointer = tmp_path / "source_detector_run.txt"
+    pointer.write_text("/original/workspace/experiments/runs/g0_seed42\n")
+
+    with pytest.raises(ArtifactValidationError, match="does not match configured run"):
+        _assert_file_points_to(pointer, expected, "G4 detector")
 
 
 def test_snapshot_rejects_recorded_source_code_hash_mismatch(

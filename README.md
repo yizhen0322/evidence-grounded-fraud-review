@@ -20,18 +20,12 @@ The ULB benchmark and the S0 synthetic operational study have different roles. U
 
 ## Complete system package
 
-The GitHub release contains `PROJECT_SOURCE.zip`, the complete runnable snapshot with the public dataset, frozen run directories, manifests, figures, tables, frontend build, and source code:
+The GitHub release contains `PROJECT_SOURCE.zip`, the complete runnable system snapshot with the public dataset, frozen run directories, manifests, figures, tables, frontend build, and source code:
 
 <https://github.com/yizhen0322/evidence-grounded-fraud-review/releases/tag/cp2-final>
 
 Private participant response records are not included. Only aggregate human-evaluation results are published.
-
-## Final assessment documents
-
-- [Final report](reports/thesis/submission/CP2_Final_Report_Ng_Yi_Zhen.pdf)
-- [CP2 logbook](reports/logbook/CP2_Logbook_Ng_Yi_Zhen.pdf)
-- [Viva presentation](reports/presentation/CP2_Presentation_Ng_Yi_Zhen.pdf)
-- [Presenter guide](reports/presentation/CP2_Presentation_Guide_Ng_Yi_Zhen.pdf)
+The assessed final report and signed logbook are submitted separately through the university portal and are intentionally not distributed in this system repository.
 
 ## Requirements
 
@@ -100,6 +94,6 @@ npm run build
 - `configs/`: experiment and dashboard configurations
 - `corpus/`: versioned validator calibration corpora
 - `experiments/`: frozen evaluation summaries and decision records
-- `reports/`: final documents, aggregate tables, and figures
+- `reports/`: aggregate tables, figures, and the research claim ledger
 - `tools/`: experiment, validation, reporting, and audit utilities
 - `tests/`: automated Python tests
